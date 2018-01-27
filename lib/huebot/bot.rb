@@ -19,22 +19,20 @@ module Huebot
       groups.map { |g| groups_by_id[g] || groups_by_name[g] || raise(Error, "Could not find a group with id or name '#{g}'") }
     end
 
-    def execute!(programs, devices)
-      programs.each do |prog|
-        transition devices, prog.initial_state if prog.initial_state
+    def execute(program, devices)
+      transition devices, program.initial_state if program.initial_state
 
-        if prog.transitions.any?
-          if prog.loop?
-            loop { iterate devices, prog.transitions }
-          elsif prog.loops > 0
-            prog.loops.times { iterate devices, prog.transitions }
-          else
-            iterate devices, prog.transitions
-          end
+      if program.transitions.any?
+        if program.loop?
+          loop { iterate devices, program.transitions }
+        elsif program.loops > 0
+          program.loops.times { iterate devices, program.transitions }
+        else
+          iterate devices, program.transitions
         end
-
-        transition devices, prog.final_state if prog.final_state
       end
+
+      transition devices, program.final_state if program.final_state
     end
 
     private

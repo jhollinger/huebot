@@ -6,6 +6,8 @@ module Huebot
     attr_accessor :final_state
     attr_accessor :loop
     attr_accessor :loops
+    attr_accessor :errors
+    attr_accessor :warnings
 
     def initialize
       @name = nil
@@ -14,6 +16,12 @@ module Huebot
       @final_state = nil
       @loop = false
       @loops = 0
+      @errors = []
+      @warnings = []
+    end
+
+    def valid?
+      errors.empty?
     end
 
     alias_method :loop?, :loop
