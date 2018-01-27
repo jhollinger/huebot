@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+# TODO remove
+$LOAD_PATH.unshift File.join(File.dirname(__FILE__), '..', 'lib')
+
+require 'huebot'
+require 'huebot/cli'
+
+Huebot::CLI.tap { |cli|
+  opts, sources = cli.get_input!
+  programs = sources.map { |src|
+    Huebot::Compiler.compile! src.ir, File.basename(src.filepath, ".*")
+  }
+
+  bot = Huebot::Bot.new(Hue::Client.new)
+  devices = bot.find! opts.lights, opts.groups
+  bot.execute! programs, devices
+}
