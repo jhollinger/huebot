@@ -2,7 +2,7 @@
 
 Orchestration and automation for Philips Hue devices. Huebot can be used as a Ruby library or a command line utility. Huebot programs are declared as YAML files.
 
-    $ huebot dimmer.yml --light="Office Desk"
+    $ huebot run dimmer.yml --light="Office Desk"
 
 **dimmer.yml**
 
