@@ -29,7 +29,6 @@ transitions:
 
 **TODO**
 
-* CLI command to list devices
 * Multi-resource transitions
 * Resource variables 
 * Validate inputs against compiled programs
