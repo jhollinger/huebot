@@ -1,5 +1,7 @@
 module Huebot
   class Program
+    Transition = Struct.new(:wait, :state)
+
     attr_accessor :name
     attr_accessor :initial_state
     attr_accessor :transitions

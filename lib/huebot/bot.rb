@@ -25,47 +25,37 @@ module Huebot
       }
     end
 
-    def execute(program, devices)
-      transition devices, program.initial_state if program.initial_state
+    def execute(program, inputs)
+      transition inputs, program.initial_state if program.initial_state
 
       if program.transitions.any?
         if program.loop?
-          loop { iterate devices, program.transitions }
+          loop { iterate inputs, program.transitions }
         elsif program.loops > 0
-          program.loops.times { iterate devices, program.transitions }
+          program.loops.times { iterate inputs, program.transitions }
         else
-          iterate devices, program.transitions
+          iterate inputs, program.transitions
         end
       end
 
-      transition devices, program.final_state if program.final_state
+      transition inputs, program.final_state if program.final_state
     end
 
     private
 
-    def iterate(device, transitions)
+    def iterate(input, transitions)
       transitions.each do |t|
-        transition device, t
+        transition input, t
       end
     end
 
-    def transition(devices, t)
-      time = t["time"] || 4
-      state = {transitiontime: time}
-      state[:on] = t["switch"] if t.has_key? "switch"
-      state[:hue] = t["hue"] if t.has_key? "hue"
-      state[:brightness] = t["brightness"] if t.has_key? "brightness"
-      state[:saturation] = t["saturation"] if t.has_key? "saturation"
-      state[:xy] = t["xy"] if t.has_key? "xy"
-      state[:color_temperature] = t["color_temperature"] if t.has_key? "color_temperature"
-      state[:alert] = t["alert"] if t.has_key? "alert"
-      state[:effect] = t["effect"] if t.has_key? "effect"
-      state[:color_mode] = t["color_mode"] if t.has_key? "color_mode"
-      devices.map { |device|
+    def transition(inputs, t)
+      time = t.state[:transitiontime] || 4
+      inputs.map { |input|
         Thread.new {
-          device.set_state state
+          input.set_state t.state
           wait time
-          wait t["wait"] if t["wait"]
+          wait t.wait if t.wait
         }
       }.map(&:join)
     end
