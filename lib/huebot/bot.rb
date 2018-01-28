@@ -8,15 +8,21 @@ module Huebot
       @client = client
     end
 
-    def find!(lights = [], groups = [])
+    def find!(inputs)
       all_lights, all_groups = client.lights, client.groups
+
       lights_by_id = all_lights.reduce({}) { |a, l| a[l.id] = l; a }
       lights_by_name = all_lights.reduce({}) { |a, l| a[l.name] = l; a }
       groups_by_id = all_groups.reduce({}) { |a, g| a[g.id] = g; a }
       groups_by_name = all_groups.reduce({}) { |a, g| a[g.name] = g; a }
 
-      lights.map { |l| lights_by_id[l] || lights_by_name[l] || raise(Error, "Could not a find light with id or name '#{l}'") } + \
-      groups.map { |g| groups_by_id[g] || groups_by_name[g] || raise(Error, "Could not find a group with id or name '#{g}'") }
+      inputs.map { |x|
+        case x
+        when LightInput then lights_by_id[x.val] || lights_by_name[x.val]
+        when GroupInput then groups_by_id[x.val] || groups_by_name[x.val]
+        else raise "Invalid input: #{x}"
+        end || raise(Error, "Could not find #{x.class.name[8..-6].downcase} with id or name '#{x.val}'")
+      }
     end
 
     def execute(program, devices)

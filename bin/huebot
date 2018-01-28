@@ -10,36 +10,29 @@ Huebot::CLI.tap { |cli|
   case cli.get_cmd
   when :ls
     client = Hue::Client.new
-    puts "Lights"
-    puts client.lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n")
-    puts "\nGroups"
-    puts client.groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
-    exit
+    puts "Lights\n" + client.lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
+      "\nGroups\n" + client.groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
 
   when :run
     opts, sources = cli.get_input!
     programs = sources.map { |src|
       Huebot::Compiler.compile src.ir, File.basename(src.filepath, ".*")
     }
-
     found_errors, found_warnings = cli.check! programs, $stderr
-    exit 1 if found_errors
 
     bot = Huebot::Bot.new(Hue::Client.new)
-    inputs = bot.find! opts.lights, opts.groups
-    # TODO validate inputs against each program
+    inputs = bot.find! opts.inputs
 
-    programs.each { |prog|
-      bot.execute prog, inputs
-    }
-    exit
+    exit 1 if found_errors
+
+    # TODO validate inputs against each program
+    programs.each { |prog| bot.execute prog, inputs }
 
   when :check
     opts, sources = cli.get_input!
     programs = sources.map { |src|
       Huebot::Compiler.compile src.ir, File.basename(src.filepath, ".*")
     }
-
     found_errors, found_warnings = cli.check! programs, $stdout
     # TODO validate NUMBER of inputs against each program
     exit (found_errors || found_warnings) ? 1 : 0
