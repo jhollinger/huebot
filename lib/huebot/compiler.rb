@@ -1,5 +1,9 @@
 module Huebot
-  module Compiler
+  class Compiler
+    def initialize(device_mapper)
+      @device_mapper = device_mapper
+    end
+
     #
     # Build a huebot program from an intermediate representation (a Hash).
     #
@@ -7,7 +11,7 @@ module Huebot
     # @param default_name [String] A name to use if one isn't specified
     # @return [Huebot::Program]
     #
-    def self.compile(ir, default_name = nil)
+    def build(ir, default_name = nil)
       ir = ir.clone
       prog = Huebot::Program.new
       prog.name = ir.delete("name") || default_name
@@ -34,7 +38,11 @@ module Huebot
       # transitions
       if (val_trns = ir.delete("transitions") || ir.delete(:transitions))
         val_trns.each do |val_trn|
-          errors, warnings, state = build_transition val_trn
+          errors, warnings, state = if val_trn["parallel"] || val_trn[:parallel]
+                                      build_parallel_transition val_trn
+                                    else
+                                      build_transition val_trn
+                                    end
           prog.transitions << state
           prog.errors += errors
           prog.warnings += warnings
@@ -62,15 +70,56 @@ module Huebot
 
     private
 
-    def self.build_transition(t)
+    def build_parallel_transition(t)
       errors, warnings = [], []
-      transition = Huebot::Program::Transition.new
+      transition = Huebot::Program::ParallelTransition.new(0, [])
 
       transition.wait = t.delete("wait") || t.delete(:wait)
-      errors << "'wait' must be a positive integer." if transition.wait and transition.wait.to_i < 0
+      errors << "'wait' must be a positive integer." if transition.wait and transition.wait.to_i <= 0
+
+      parallel = t.delete("parallel") || t.delete(:parallel)
+      if !parallel.is_a? Array
+        errors << "'parallel' must be an array of transitions"
+      else
+        parallel.each do |sub_t|
+          sub_errors, sub_warnings, sub_transition = build_transition(sub_t)
+          errors += sub_errors
+          warnings += sub_warnings
+          transition.children << sub_transition
+        end
+      end
+
+      return errors, warnings, transition
+    end
+
+    def build_transition(t)
+      errors, warnings = [], []
+      transition = Huebot::Program::Transition.new
+      transition.devices = []
+
+      map_devices(t, :light, :lights, :light!) { |map_errors, devices|
+        errors += map_errors
+        transition.devices += devices
+      }
+
+      map_devices(t, :group, :groups, :group!) { |map_errors, devices|
+        errors += map_errors
+        transition.devices += devices
+      }
+
+      map_devices(t, :device, :devices, :var!) { |map_errors, devices|
+        errors += map_errors
+        transition.devices += devices
+      }
+      errors << "Missing light/lights, group/groups, or device/devices" if transition.devices.empty?
+
+      transition.wait = t.delete("wait") || t.delete(:wait)
+      errors << "'wait' must be a positive integer." if transition.wait and transition.wait.to_i <= 0
 
       state = {}
-      if !(switch = t.delete("switch") || t.delete(:switch)).nil?
+      switch = t.delete("switch")
+      switch = t.delete(:switch) if switch.nil?
+      if !switch.nil?
         state[:on] = case switch
                      when true, :on then true
                      when false, :off then false
@@ -86,6 +135,25 @@ module Huebot
         a
       }
       return errors, warnings, transition
+    end
+
+    private
+
+    def map_devices(t, singular_key, plural_key, ref_type)
+      errors, devices = [], []
+
+      key = t[singular_key.to_s] || t[singular_key]
+      keys = t[plural_key.to_s] || t[plural_key]
+
+      (Array(key) + Array(keys)).each { |x|
+        begin
+          devices += Array(@device_mapper.send(ref_type, x))
+        rescue Huebot::DeviceMapper::Unmapped => e
+          errors << e.message
+        end
+      }
+
+      yield errors, devices
     end
   end
 end

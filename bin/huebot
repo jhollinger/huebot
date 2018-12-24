@@ -15,23 +15,29 @@ Huebot::CLI.tap { |cli|
 
   when :run
     opts, sources = cli.get_input!
+
+    client = Hue::Client.new
+    device_mapper = Huebot::DeviceMapper.new(client, opts.inputs)
+    compiler = Huebot::Compiler.new(device_mapper)
+
     programs = sources.map { |src|
-      Huebot::Compiler.compile src.ir, File.basename(src.filepath, ".*")
+      compiler.build src.ir, File.basename(src.filepath, ".*")
     }
-    found_errors, found_warnings = cli.check! programs, $stderr
-
-    bot = Huebot::Bot.new(Hue::Client.new)
-    inputs = bot.find! opts.inputs
-
+    found_errors, _found_warnings = cli.check! programs, $stderr
     exit 1 if found_errors
 
-    # TODO validate inputs against each program
-    programs.each { |prog| bot.execute prog, inputs }
+    bot = Huebot::Bot.new(client)
+    programs.each { |prog| bot.execute prog }
 
   when :check
     opts, sources = cli.get_input!
+
+    client = Hue::Client.new
+    device_mapper = Huebot::DeviceMapper.new(client, opts.inputs)
+    compiler = Huebot::Compiler.new(device_mapper)
+
     programs = sources.map { |src|
-      Huebot::Compiler.compile src.ir, File.basename(src.filepath, ".*")
+      compiler.build src.ir, File.basename(src.filepath, ".*")
     }
     found_errors, found_warnings = cli.check! programs, $stdout
     # TODO validate NUMBER of inputs against each program

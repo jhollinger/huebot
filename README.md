@@ -12,26 +12,29 @@ This (very simple) program starts with the light(s) on at full brightness, then 
 initial:
   switch: on
   brightness: 254
+  device: $all
 
 loop: true
 
 transitions:
-  - brightness: 150
+  - device: $all
+    brightness: 150
     time: 100
     wait: 20
 
-  - brightness: 254
+  - device: $all
+    brightness: 254
     time: 100
     wait: 20
 ```
+
+The variable `$all` refers to all lights and/or groups passed in on the command line. They can be also referred to individually as `$1`, `$2`, `$3`, etc. The names of lights and groups can also be hard-coded into your program. [See examples in the Wiki.](https://github.com/jhollinger/huebot/wiki)
 
 ## UNDER ACTIVE DEVELOPMENT
 
 **TODO**
 
-* Multi-resource transitions
-* Resource variables 
-* Validate inputs against compiled programs
+* Validate number of inputs against compiled programs
 * Brief explanation various features
 * Wiki entry with more examples
 * Link to official Hue docs

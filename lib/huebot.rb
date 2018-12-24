@@ -1,6 +1,7 @@
 require 'hue'
 
 module Huebot
+  autoload :DeviceMapper, 'huebot/device_mapper'
   autoload :Program, 'huebot/program'
   autoload :Compiler, 'huebot/compiler'
   autoload :Bot, 'huebot/bot'

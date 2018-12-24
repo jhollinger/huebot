@@ -1,6 +1,7 @@
 module Huebot
   class Program
-    Transition = Struct.new(:wait, :state)
+    Transition = Struct.new(:wait, :state, :devices)
+    ParallelTransition = Struct.new(:wait, :children)
 
     attr_accessor :name
     attr_accessor :initial_state
