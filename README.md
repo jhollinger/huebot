@@ -35,3 +35,7 @@ transitions:
 * Brief explanation various features
 * Wiki entry with more examples
 * Link to official Hue docs
+
+## Dependencies
+
+Depends on the `hue` gem which requires the curl library headers (`apt-get install libcurl4-openssl-dev` on Ubuntu).
