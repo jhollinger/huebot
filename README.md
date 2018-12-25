@@ -8,6 +8,12 @@ Orchestration and automation for Philips Hue devices. Huebot can be used as a Ru
 
 This (very simple) program starts with the light(s) on at full brightness, then enters an infinite loop of slowly dimming and raising the light(s). Since no color is specified, the light(s) will retain whatever color they last had.
 
+## Install
+
+    gem install huebot
+
+The curl library headers are required. On Ubuntu they can be installed with `apt-get install libcurl4-openssl-dev`.
+
 ```yaml
 initial:
   switch: on
@@ -38,7 +44,3 @@ The variable `$all` refers to all lights and/or groups passed in on the command 
 * Brief explanation various features
 * Wiki entry with more examples
 * Link to official Hue docs
-
-## Dependencies
-
-Depends on the `hue` gem which requires the curl library headers (`apt-get install libcurl4-openssl-dev` on Ubuntu).
