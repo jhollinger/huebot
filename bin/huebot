@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-# TODO remove
-$LOAD_PATH.unshift File.join(File.dirname(__FILE__), '..', 'lib')
+# Used for local testing
+# $LOAD_PATH.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 
 require 'huebot'
 require 'huebot/cli'

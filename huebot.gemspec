@@ -14,5 +14,4 @@ Gem::Specification.new do |s|
   s.files = [Dir.glob('lib/**/*'), 'README.md'].flatten
   s.executables << 'huebot'
   s.required_ruby_version = '>= 2.1.0'
-  s.add_runtime_dependency 'hue', '~> 0.2.0'
 end

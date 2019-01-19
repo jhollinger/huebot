@@ -34,7 +34,11 @@ The variable `$all` refers to all lights and/or groups passed in on the command 
 
     gem install huebot
 
-The curl library headers are required. On Ubuntu they can be installed with `apt-get install libcurl4-openssl-dev`.
+## License
+
+Huebot is licensed under the MIT license (see LICENSE file).
+
+A patched version of the "hue" gem is bundled in huebot's codebase (to remove a dependency that's unnecessarily annoying to install). The license for it can be found at `lib/hue/LICENSE`.
 
 ## UNDER ACTIVE DEVELOPMENT
 
