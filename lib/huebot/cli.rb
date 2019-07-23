@@ -12,7 +12,7 @@ module Huebot
     #
     # @attr inputs [Array<String>]
     #
-    Options = Struct.new(:inputs)
+    Options = Struct.new(:inputs, :read_stdin)
 
     #
     # Returns the command given to huebot.
@@ -34,16 +34,18 @@ module Huebot
       parser.parse!
 
       files = ARGV[1..-1]
-      if files.empty?
+      if files.empty? and !options.read_stdin
         puts parser.help
         exit 1
       elsif (bad_paths = files.select { |p| !File.exists? p }).any?
         $stderr.puts "Cannot find #{bad_paths.join ', '}"
         exit 1
       else
-        return options, files.map { |path|
+        sources = files.map { |path|
           ProgramSrc.new(YAML.load_file(path), path)
         }
+        sources << ProgramSrc.new(YAML.load($stdin.read), "STDIN") if options.read_stdin
+        return options, sources
       end
     end
 
@@ -93,7 +95,7 @@ module Huebot
     end
 
     def self.option_parser
-      options = Options.new([])
+      options = Options.new([], false)
       parser = OptionParser.new { |opts|
         opts.banner = %(
 List all lights and groups:
@@ -110,6 +112,7 @@ Options:
         opts.on("-lLIGHT", "--light=LIGHT", "Light ID or name") { |l| options.inputs << LightInput.new(l) }
         opts.on("-gGROUP", "--group=GROUP", "Group ID or name") { |g| options.inputs << GroupInput.new(g) }
         opts.on("--all", "All lights and groups TODO") { $stderr.puts "Not Implemented"; exit 1 }
+        opts.on("-i", "Read program from STDIN") { options.read_stdin = true }
         opts.on("-h", "--help", "Prints this help") { puts opts; exit }
       }
       return options, parser
