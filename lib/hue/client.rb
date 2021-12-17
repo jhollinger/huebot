@@ -34,7 +34,7 @@ module Hue
     # Patched by Jordan Hollinger to remove use of "curb" gem
     # TODO handle redirects? That's what curb was used for.
     def bridges
-      req = Net::HTTP::Get.new(URI("https://www.meethue.com/api/nupnp"))
+      req = Net::HTTP::Get.new(URI(ENV["HUE_DISCOVERY_API"] || "https://discovery.meethue.com/"))
       resp = Net::HTTP.start req.uri.host, req.uri.port, {use_ssl: true} do |http|
         http.request req
       end

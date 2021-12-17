@@ -23,7 +23,7 @@ module Huebot
   LightInput = Struct.new(:val)
 
   #
-  # Struct for specifying a Gropu input (id or name)
+  # Struct for specifying a Group input (id or name)
   #
   # @attr val [Integer|String] id or name
   #
