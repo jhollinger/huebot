@@ -38,7 +38,7 @@ Have a laptop stuck behind a VPN? Autodetection of your Hue Bridge may not work.
 
     huebot set-ip <your bridge's IP>
 
-Configuration is stored in `~/.huebot`.
+Configuration is stored in `~/.config/huebot`.
 
 ## License
 

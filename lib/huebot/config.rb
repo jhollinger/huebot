@@ -1,9 +1,12 @@
+require 'fileutils'
 require 'yaml'
 
 module Huebot
   class Config
-    def initialize(path = "~/.huebot")
+    def initialize(path = "~/.config/huebot")
       @path = File.expand_path(path)
+      @dir = File.dirname(@path)
+      @dir_exists = File.exist? @dir
       @config = File.exist?(@path) ? YAML.load_file(@path) : {}
     end
 
@@ -28,6 +31,10 @@ module Huebot
     private
 
     def write
+      unless @dir_exists
+        FileUtils.mkdir_p @dir
+        @dir_exists = true
+      end
       File.write(@path, YAML.dump(@config))
     end
   end
