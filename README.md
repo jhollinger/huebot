@@ -34,7 +34,7 @@ The variable `$all` refers to all lights and/or groups passed in on the command 
 
     gem install huebot
 
-Have a laptop stuck behind a VPN? Autodetection of your Hue Bridge may not work. But if you know its IP, you can set it manually:
+Having trouble with Hue Bridge auto discovery? Me too. If you know your bridge's IP (and ideally have assigned it a static one), you can set it manually:
 
     huebot set-ip <your bridge's IP>
 
