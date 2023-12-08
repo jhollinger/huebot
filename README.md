@@ -1,6 +1,6 @@
 # Huebot
 
-Orchestration and automation for Philips Hue devices. Huebot can be used as a Ruby library or a command line utility. Huebot programs are declared as YAML files.
+Program your Hue lights in YAML!
 
     $ huebot run dimmer.yml --light="Office Desk"
 
@@ -34,17 +34,16 @@ The variable `$all` refers to all lights and/or groups passed in on the command 
 
     gem install huebot
 
+Have a laptop stuck behind a VPN? Autodetection of your Hue Bridge may not work. But if you know its IP, you can set it manually:
+
+    huebot set-ip <your bridge's IP>
+
 ## License
 
 Huebot is licensed under the MIT license (see LICENSE file).
 
-A patched version of the "hue" gem is bundled in huebot's codebase (to remove a dependency that's unnecessarily annoying to install). The license for it can be found at `lib/hue/LICENSE`.
-
-## UNDER ACTIVE DEVELOPMENT
-
 **TODO**
 
 * Validate number of inputs against compiled programs
-* Brief explanation various features
-* Wiki entry with more examples
-* Link to official Hue docs
+* More explanation various features in Wiki
+* More examples in Wiki
