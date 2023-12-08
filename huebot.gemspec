@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.licenses = ['MIT']
   s.summary = 'Orchestration for Hue devices'
   s.description = 'Declare and run YAML programs for Philips Hue devices'
-  s.date = '2021-12-17'
+  s.date = '2023-12-08'
   s.authors = ['Jordan Hollinger']
   s.email = 'jordan.hollinger@gmail.com'
   s.homepage = 'https://github.com/jhollinger/huebot'
