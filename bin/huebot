@@ -9,15 +9,25 @@ require 'huebot/cli'
 Huebot::CLI.tap { |cli|
   case cli.get_cmd
   when :ls
-    client = Hue::Client.new
-    puts "Lights\n" + client.lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
-      "\nGroups\n" + client.groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
+    bridge, error = Huebot::Bridge.connect
+    if error
+      $stderr.puts error
+      exit 1
+    end
+
+    puts "Lights\n" + bridge.lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
+      "\nGroups\n" + bridge.groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
 
   when :run
     opts, sources = cli.get_input!
 
-    client = Hue::Client.new
-    device_mapper = Huebot::DeviceMapper.new(client, opts.inputs)
+    bridge, error = Huebot::Bridge.connect
+    if error
+      $stderr.puts error
+      exit 1
+    end
+
+    device_mapper = Huebot::DeviceMapper.new(bridge, opts.inputs)
     compiler = Huebot::Compiler.new(device_mapper)
 
     programs = sources.map { |src|
@@ -26,14 +36,19 @@ Huebot::CLI.tap { |cli|
     found_errors, _found_warnings = cli.check! programs, $stderr
     exit 1 if found_errors
 
-    bot = Huebot::Bot.new(client)
+    bot = Huebot::Bot.new(bridge)
     programs.each { |prog| bot.execute prog }
 
   when :check
     opts, sources = cli.get_input!
 
-    client = Hue::Client.new
-    device_mapper = Huebot::DeviceMapper.new(client, opts.inputs)
+    bridge, error = Huebot::Bridge.connect
+    if error
+      $stderr.puts error
+      exit 1
+    end
+
+    device_mapper = Huebot::DeviceMapper.new(bridge, opts.inputs)
     compiler = Huebot::Compiler.new(device_mapper)
 
     programs = sources.map { |src|
@@ -42,6 +57,21 @@ Huebot::CLI.tap { |cli|
     found_errors, found_warnings = cli.check! programs, $stdout
     # TODO validate NUMBER of inputs against each program
     exit (found_errors || found_warnings) ? 1 : 0
+
+  when :"set-ip"
+    ip = cli.get_args(num: 1).first
+    config = Huebot::Config.new
+    config["ip"] = ip
+
+  when :"clear-ip"
+    cli.get_args(num: 0)
+    config = Huebot::Config.new
+    config["ip"] = nil
+
+  when :unregister
+    cli.get_args(num: 0)
+    config = Huebot::Config.new
+    config.clear
 
   else cli.help!
   end

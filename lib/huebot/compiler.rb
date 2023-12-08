@@ -1,5 +1,7 @@
 module Huebot
   class Compiler
+    DEVICE_FIELDS = %i(light lights group groups device devices).freeze
+
     def initialize(device_mapper)
       @device_mapper = device_mapper
     end
@@ -130,9 +132,9 @@ module Huebot
       end
       state[:transitiontime] = t.delete("time") || t.delete(:time) || t.delete("transitiontime") || t.delete(:transitiontime) || 4
 
-      transition.state = t.merge(state).reduce({}) { |a, (key, val)|
-        a[key.to_sym] = val
-        a
+      transition.state = t.merge(state).each_with_object({}) { |(key, val), obj|
+        key = key.to_sym
+        obj[key] = val unless DEVICE_FIELDS.include? key
       }
       return errors, warnings, transition
     end

@@ -2,8 +2,8 @@ module Huebot
   class DeviceMapper
     Unmapped = Class.new(StandardError)
 
-    def initialize(client, inputs = [])
-      all_lights, all_groups = client.lights, client.groups
+    def initialize(bridge, inputs = [])
+      all_lights, all_groups = bridge.lights, bridge.groups
 
       @lights_by_id = all_lights.reduce({}) { |a, l| a[l.id] = l; a }
       @lights_by_name = all_lights.reduce({}) { |a, l| a[l.name] = l; a }

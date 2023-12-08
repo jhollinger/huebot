@@ -23,6 +23,31 @@ module Huebot
       ARGV[0].to_s.to_sym
     end
 
+    def self.get_args(min: nil, max: nil, num: nil)
+      args = ARGV[1..]
+      if num
+        if num != args.size
+          $stderr.puts "Expected #{num} args, found #{args.size}"
+          exit 1
+        end
+      elsif min and max
+        if args.size < min or args.size > max
+          $stderr.puts "Expected #{min}-#{max} args, found #{args.size}"
+        end
+      elsif min
+        if args.size < min
+          $stderr.puts "Expected at least #{num} args, found #{args.size}"
+          exit 1
+        end
+      elsif max
+        if args.size > max
+          $stderr.puts "Expected no more than #{num} args, found #{args.size}"
+          exit 1
+        end
+      end
+      args
+    end
+
     #
     # Parses and returns input from the CLI. Serious errors might result in the program exiting.
     #
@@ -37,7 +62,7 @@ module Huebot
       if files.empty? and !options.read_stdin
         puts parser.help
         exit 1
-      elsif (bad_paths = files.select { |p| !File.exists? p }).any?
+      elsif (bad_paths = files.select { |p| !File.exist? p }).any?
         $stderr.puts "Cannot find #{bad_paths.join ', '}"
         exit 1
       else
@@ -106,6 +131,13 @@ Run program(s):
 
 Validate programs and inputs:
     huebot check file1.yml [file2.yml [file3.yml ...]] [options]
+
+Manually set/clear the IP for your Hue Bridge (useful when on a VPN):
+    huebot set-ip 192.168.1.20
+    huebot clear-ip
+
+Clear all connection config:
+  huebot unregister
 
 Options:
         ).strip
