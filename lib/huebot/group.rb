@@ -1,5 +1,12 @@
 module Huebot
   class Group
+    #
+    # Struct for specifying a Group input (id or name)
+    #
+    # @attr val [Integer|String] id or name
+    #
+    Input = Struct.new(:val)
+
     include DeviceState
     attr_reader :client, :id, :name
 

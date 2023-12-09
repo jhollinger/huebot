@@ -52,7 +52,7 @@ module Huebot
     # Parses and returns input from the CLI. Serious errors might result in the program exiting.
     #
     # @return [Huebot::CLI::Options] All given CLI options
-    # @return [Array<Huebot::ProgramSrc>] Array of given program sources
+    # @return [Array<Huebot::Program::Src>] Array of given program sources
     #
     def self.get_input!
       options, parser = option_parser
@@ -67,9 +67,9 @@ module Huebot
         exit 1
       else
         sources = files.map { |path|
-          ProgramSrc.new(YAML.load_file(path), path)
+          Program::Src.new(YAML.load_file(path), path)
         }
-        sources << ProgramSrc.new(YAML.load($stdin.read), "STDIN") if options.read_stdin
+        sources << Program::Src.new(YAML.load($stdin.read), "STDIN") if options.read_stdin
         return options, sources
       end
     end
@@ -141,8 +141,8 @@ Clear all connection config:
 
 Options:
         ).strip
-        opts.on("-lLIGHT", "--light=LIGHT", "Light ID or name") { |l| options.inputs << LightInput.new(l) }
-        opts.on("-gGROUP", "--group=GROUP", "Group ID or name") { |g| options.inputs << GroupInput.new(g) }
+        opts.on("-lLIGHT", "--light=LIGHT", "Light ID or name") { |l| options.inputs << Light::Input.new(l) }
+        opts.on("-gGROUP", "--group=GROUP", "Group ID or name") { |g| options.inputs << Group::Input.new(g) }
         opts.on("--all", "All lights and groups TODO") { $stderr.puts "Not Implemented"; exit 1 }
         opts.on("-i", "Read program from STDIN") { options.read_stdin = true }
         opts.on("-h", "--help", "Prints this help") { puts opts; exit }

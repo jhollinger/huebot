@@ -11,8 +11,8 @@ module Huebot
       @groups_by_name = all_groups.reduce({}) { |a, g| a[g.name] = g; a }
       @devices_by_var = inputs.each_with_index.reduce({}) { |a, (x, idx)|
         dev = case x
-              when LightInput then @lights_by_id[x.val] || @lights_by_name[x.val]
-              when GroupInput then @groups_by_id[x.val] || @groups_by_name[x.val]
+              when Light::Input then @lights_by_id[x.val] || @lights_by_name[x.val]
+              when Group::Input then @groups_by_id[x.val] || @groups_by_name[x.val]
               else raise "Invalid input: #{x}"
               end || raise(Unmapped, "Could not find #{x.class.name[8..-6].downcase} with id or name '#{x.val}'")
         a["$#{idx + 1}"] = dev

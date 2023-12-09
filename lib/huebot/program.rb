@@ -1,5 +1,13 @@
 module Huebot
   class Program
+    #
+    # Struct for storing a program's Intermediate Representation and source filepath.
+    #
+    # @attr ir [Hash]
+    # @attr filepath [String]
+    #
+    Src = Struct.new(:ir, :filepath)
+
     Transition = Struct.new(:wait, :state, :devices)
     ParallelTransition = Struct.new(:wait, :children)
 
