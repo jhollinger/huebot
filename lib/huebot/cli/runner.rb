@@ -15,8 +15,8 @@ module Huebot
         programs = sources.map { |src|
           Huebot::Compiler.build src
         }
-        found_errors, _found_warnings = cli.check! programs, device_mapper, $stderr
-        return 1 if found_errors
+        found_errors, _found_warnings, missing_devices = Helpers.check! programs, device_mapper, $stderr
+        return 1 if found_errors || missing_devices
 
         bot = Huebot::Bot.new(device_mapper)
         programs.each { |prog| bot.execute prog }
@@ -31,9 +31,8 @@ module Huebot
         programs = sources.map { |src|
           Huebot::Compiler.build src
         }
-        found_errors, found_warnings = cli.check! programs, device_mapper, $stdout
-        # TODO validate NUMBER of inputs against each program
-        return (found_errors || found_warnings) ? 1 : 0
+        found_errors, found_warnings, missing_devices = Helpers.check! programs, device_mapper, $stdout
+        return (found_errors || found_warnings || missing_devices) ? 1 : 0
       rescue ::Huebot::Error => e
         $stderr.puts "#{e.class.name}: #{e.message}"
         return 1

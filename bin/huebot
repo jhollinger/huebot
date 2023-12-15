@@ -1,10 +1,9 @@
 #!/usr/bin/env ruby
 
 # Used for local testing
-# $LOAD_PATH.unshift File.join(File.dirname(__FILE__), '..', 'lib')
+$LOAD_PATH.unshift File.join(File.dirname(__FILE__), '..', 'lib')
 
 require 'huebot'
-require 'huebot/cli'
 
 Huebot::CLI::Helpers.tap { |cli|
   case cli.get_cmd
@@ -14,7 +13,7 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = CLI::Runner.ls bridge
+    retval = Huebot::CLI::Runner.ls bridge
     exit retval
 
   when :run
@@ -24,7 +23,7 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = CLI::Runner.run(bridge, sources, opts)
+    retval = Huebot::CLI::Runner.run(bridge, sources, opts)
     exit retval
 
   when :check
@@ -34,23 +33,30 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = CLI::Runner.check(bridge, sources, opts)
+    retval = Huebot::CLI::Runner.check(bridge, sources, opts)
     exit retval
 
   when :"set-ip"
     ip = cli.get_args(num: 1).first
-    retval = CLI::Runner.set_ip ip
+    retval = Huebot::CLI::Runner.set_ip ip
     exit retval
 
   when :"clear-ip"
     cli.get_args(num: 0)
-    retval = CLI::Runner.unregister
+    retval = Huebot::CLI::Runner.unregister
     exit retval
 
   when :unregister
     cli.get_args(num: 0)
-    retval = CLI::Runner.unregister
+    retval = Huebot::CLI::Runner.unregister
     exit retval
+
+  when :test
+    puts "!!!!!!!!!!!!!"
+    bridge, error = Huebot::Bridge.connect
+    lights = bridge.lights
+    puts lights[0].id
+
 
   else cli.help!
   end

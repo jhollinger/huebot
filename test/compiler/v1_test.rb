@@ -96,6 +96,46 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal [:all, 1, 2, 3, 4, 5].map(&:to_s).sort, program.device_refs.map(&:to_s).sort
   end
 
+  def test_light_names
+    compiler = Huebot::Compiler::ApiV1.new(1.0)
+    program = compiler.build({
+      "name" => "Test",
+      "serial" => [
+        {"transition" => {}, "devices" => {"inputs" => "$all", "lights" => ["LR1"]}},
+        {"transition" => {}, "devices" => {"lights" => ["LR2", "LR3"]}},
+        {"parallel" => [
+          {"transition" => {}, "devices" => {"inputs" => ["$4"]}},
+          {"transition" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}},
+          {"transition" => {}, "devices" => {"inputs" => ["$1", "$5"]}},
+        ]}
+      ],
+    })
+
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+    assert_equal ["Foo", "LR1", "LR2", "LR3"].sort, program.light_names.sort
+  end
+
+  def test_group_names
+    compiler = Huebot::Compiler::ApiV1.new(1.0)
+    program = compiler.build({
+      "name" => "Test",
+      "serial" => [
+        {"transition" => {}, "devices" => {"inputs" => "$all", "groups" => ["Upstairs"]}},
+        {"transition" => {}, "devices" => {"groups" => ["Downstairs", "Outside"]}},
+        {"parallel" => [
+          {"transition" => {}, "devices" => {"inputs" => ["$4"]}},
+          {"transition" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}},
+          {"transition" => {}, "devices" => {"inputs" => ["$1", "$5"]}},
+        ]}
+      ],
+    })
+
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+    assert_equal ["Bar", "Downstairs", "Outside", "Upstairs"].sort, program.group_names.sort
+  end
+
   def test_build_serial_transitions
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({

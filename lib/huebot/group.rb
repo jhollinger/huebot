@@ -12,7 +12,7 @@ module Huebot
 
     def initialize(client, id, attrs)
       @client = client
-      @id = id
+      @id = id.to_i
       @name = attrs.fetch("name")
       @attrs = attrs
     end

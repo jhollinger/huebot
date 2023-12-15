@@ -35,19 +35,19 @@ module Huebot
       errors.empty?
     end
 
-    def call
-      data.call
+    # Returns all light names hard-coded into the program
+    def light_names(node = data)
+      devices(AST::Light).uniq.map(&:name)
     end
 
+    # Returns all group names hard-coded into the program
+    def group_names(node = data)
+      devices(AST::Group).uniq.map(&:name)
+    end
+
+    # Returns all device refs (e.g. $all, $1, $2) in the program
     def device_refs(node = data)
-      case node.instruction
-      when AST::Transition
-        node.instruction.devices.select { |d| d.is_a? AST::DeviceRef }.map(&:ref)
-      when AST::SerialControl, AST::ParallelControl
-        node.children.map { |n| device_refs n }.flatten
-      else
-        []
-      end.uniq
+      devices(AST::DeviceRef).uniq.map(&:ref)
     end
 
     def errors(node = data)
@@ -64,51 +64,15 @@ module Huebot
 
     private
 
-    def exec(i)
-      case i
-      when Serial
-        serial_transitions i.transitions, i.loop
-      when Parallel
-        parallel_transitions i.transitions
-      when Transition
-        transition i.state, i.devices
-      when Sleep
-        wait (i.sec * 10).round
+    def devices(type, node = data)
+      case node.instruction
+      when AST::Transition
+        node.instruction.devices.select { |d| d.is_a? type }
+      when AST::SerialControl, AST::ParallelControl
+        node.children.map { |n| devices type, n }.flatten
       else
-        raise Error, "Unexpected instruction '#{i.class.name}'"
+        []
       end
     end
-
-      def serial_transitions(transitions, lp)
-        perform(lp) {
-          transitions.each { |t| transition t }
-        }
-      end
-
-      def parallel_transitions(transitions)
-        transactions
-          .map { |t| Thread.new { transition t } }
-          .map(&:join)
-      end
-
-      def transition(state, devices)
-        time = state[:transitiontime] || 4
-        devices.map { |device|
-          Thread.new {
-            device.set_state state
-            wait time
-          }
-        }.map(&:join)
-      end
-
-      def perform(lp)
-      end
-
-      def wait(tens_of_sec)
-        ms = tens_of_sec * 100
-        seconds = ms / 1000.to_f
-        # TODO sleep in small bursts in a loop so can detect if an Interrupt was caught
-        sleep seconds
-      end
   end
 end

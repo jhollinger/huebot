@@ -74,20 +74,42 @@ module Huebot
       # Prints any program errors or warnings, and returns a boolean for each.
       #
       # @param programs [Array<Huebot::Program>]
+      # @param device_mapper [Huebot::DeviceMapper]
       # @param io [IO] Usually $stdout or $stderr
       # @param quiet [Boolean] if true, don't print anything
       #
-      def self.check!(programs, io, quiet: false)
+      def self.check!(programs, device_mapper, io, quiet: false)
         if (invalid_progs = programs.select { |prog| prog.errors.any? }).any?
-          print_messages! io, "Errors", invalid_progs, :errors unless quiet
+          errors = invalid_progs.reduce([]) { |acc, prog|
+            acc + prog.errors.map { |e| "  #{prog.name}: #{e}" }
+          }
+          print_messages! io, "Errors", errors unless quiet
         end
 
         if (imperfect_progs = programs.select { |prog| prog.warnings.any? }).any?
-          puts "" if invalid_progs.any?
-          print_messages! io, "Warnings", imperfect_progs, :warnings unless quiet
+          warnings = imperfect_progs.reduce([]) { |acc, prog|
+            acc + prog.warnings.map { |e| "  #{prog.name}: #{e}" }
+          }
+          print_messages! io, "Warnings", warnings unless quiet
         end
 
-        return invalid_progs.any?, imperfect_progs.any?
+        all_lights = programs.reduce([]) { |acc, p| acc + p.light_names }
+        if (missing_lights = device_mapper.missing_lights all_lights).any?
+          print_messages! io, "Unknown lights", missing_lights
+        end
+
+        all_groups = programs.reduce([]) { |acc, p| acc + p.group_names }
+        if (missing_groups = device_mapper.missing_groups all_groups).any?
+          print_messages! io, "Unknown groups", missing_groups
+        end
+
+        all_vars = programs.reduce([]) { |acc, p| acc + p.device_refs }
+        if (missing_vars = device_mapper.missing_vars all_vars).any?
+          print_messages! io, "Unknown device inputs", missing_vars.map { |d| "$#{d}" }
+        end
+
+        invalid_devices = missing_lights.size + missing_groups.size + missing_vars.size
+        return invalid_progs.any?, imperfect_progs.any?, invalid_devices > 0
       end
 
       # Print help and exit
@@ -104,14 +126,12 @@ module Huebot
       #
       # @param io [IO] Usually $stdout or $stderr
       # @param label [String] Top-level for this group of messages
-      # @param progs [Array<Huebot::CLI::Program>]
-      # @param msg_type [Symbol] name of method that holds the messages (i.e. :errors or :warnings)
+      # @param errors [Array<String>]
       #
-      def self.print_messages!(io, label, progs, msg_type)
+      def self.print_messages!(io, label, errors)
         io.puts "#{label}:"
-        progs.each { |prog|
-          io.puts "  #{prog.name}:"
-          prog.send(msg_type).each_with_index { |msg, i| io.puts "    #{i+1}. #{msg}" }
+        errors.each_with_index { |msg, i|
+          io.puts "  #{i+1}) #{msg}"
         }
       end
 
