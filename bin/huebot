@@ -6,7 +6,7 @@
 require 'huebot'
 require 'huebot/cli'
 
-Huebot::CLI.tap { |cli|
+Huebot::CLI::Helpers.tap { |cli|
   case cli.get_cmd
   when :ls
     bridge, error = Huebot::Bridge.connect
@@ -14,64 +14,43 @@ Huebot::CLI.tap { |cli|
       $stderr.puts error
       exit 1
     end
-
-    puts "Lights\n" + bridge.lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
-      "\nGroups\n" + bridge.groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
+    retval = CLI::Runner.ls bridge
+    exit retval
 
   when :run
     opts, sources = cli.get_input!
-
     bridge, error = Huebot::Bridge.connect
     if error
       $stderr.puts error
       exit 1
     end
-
-    device_mapper = Huebot::DeviceMapper.new(bridge, opts.inputs)
-    compiler = Huebot::Compiler.new(device_mapper)
-
-    programs = sources.map { |src|
-      compiler.build src.ir, File.basename(src.filepath, ".*")
-    }
-    found_errors, _found_warnings = cli.check! programs, $stderr
-    exit 1 if found_errors
-
-    bot = Huebot::Bot.new(bridge)
-    programs.each { |prog| bot.execute prog }
+    retval = CLI::Runner.run(bridge, sources, opts)
+    exit retval
 
   when :check
     opts, sources = cli.get_input!
-
     bridge, error = Huebot::Bridge.connect
     if error
       $stderr.puts error
       exit 1
     end
-
-    device_mapper = Huebot::DeviceMapper.new(bridge, opts.inputs)
-    compiler = Huebot::Compiler.new(device_mapper)
-
-    programs = sources.map { |src|
-      compiler.build src.ir, File.basename(src.filepath, ".*")
-    }
-    found_errors, found_warnings = cli.check! programs, $stdout
-    # TODO validate NUMBER of inputs against each program
-    exit (found_errors || found_warnings) ? 1 : 0
+    retval = CLI::Runner.check(bridge, sources, opts)
+    exit retval
 
   when :"set-ip"
     ip = cli.get_args(num: 1).first
-    config = Huebot::Config.new
-    config["ip"] = ip
+    retval = CLI::Runner.set_ip ip
+    exit retval
 
   when :"clear-ip"
     cli.get_args(num: 0)
-    config = Huebot::Config.new
-    config["ip"] = nil
+    retval = CLI::Runner.unregister
+    exit retval
 
   when :unregister
     cli.get_args(num: 0)
-    config = Huebot::Config.new
-    config.clear
+    retval = CLI::Runner.unregister
+    exit retval
 
   else cli.help!
   end

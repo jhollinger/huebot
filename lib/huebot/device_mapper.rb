@@ -1,6 +1,6 @@
 module Huebot
   class DeviceMapper
-    Unmapped = Class.new(StandardError)
+    Unmapped = Class.new(Error)
 
     def initialize(bridge, inputs = [])
       all_lights, all_groups = bridge.lights, bridge.groups
@@ -13,7 +13,7 @@ module Huebot
         dev = case x
               when Light::Input then @lights_by_id[x.val] || @lights_by_name[x.val]
               when Group::Input then @groups_by_id[x.val] || @groups_by_name[x.val]
-              else raise "Invalid input: #{x}"
+              else raise Error, "Invalid input: #{x}"
               end || raise(Unmapped, "Could not find #{x.class.name[8..-6].downcase} with id or name '#{x.val}'")
         a["$#{idx + 1}"] = dev
         a

@@ -9,19 +9,7 @@ module Huebot
     end
 
     def execute(program)
-      transition program.initial_state if program.initial_state
-
-      if program.transitions.any?
-        if program.loop?
-          loop { iterate program.transitions }
-        elsif program.loops > 0
-          program.loops.times { iterate program.transitions }
-        else
-          iterate program.transitions
-        end
-      end
-
-      transition program.final_state if program.final_state
+      program.run
     end
 
     private
@@ -43,24 +31,6 @@ module Huebot
         }
       }.map(&:join)
       wait t.wait if t.wait and t.wait > 0
-    end
-
-    def transition(t)
-      time = t.state[:transitiontime] || 4
-      t.devices.map { |device|
-        Thread.new {
-          device.set_state t.state
-          wait time
-          wait t.wait if t.wait
-        }
-      }.map(&:join)
-    end
-
-    def wait(time)
-      ms = time * 100
-      seconds = ms / 1000.to_f
-      # TODO sleep in small bursts in a loop so can detect if an Interrupt was caught
-      sleep seconds
     end
   end
 end

@@ -1,6 +1,9 @@
 module Huebot
+  Error = Class.new(StandardError)
+
   autoload :Config, 'huebot/config'
   autoload :Client, 'huebot/client'
+  autoload :CLI, 'huebot/cli'
   autoload :Bridge, 'huebot/bridge'
   autoload :DeviceState, 'huebot/device_state'
   autoload :Light, 'huebot/light'

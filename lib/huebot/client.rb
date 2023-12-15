@@ -6,6 +6,7 @@ module Huebot
   class Client
     DISCOVERY_URI = URI(ENV["HUE_DISCOVERY_API"] || "https://discovery.meethue.com/")
     Bridge = Struct.new(:id, :ip)
+    Error = Class.new(Error)
 
     attr_reader :config
 
@@ -44,7 +45,7 @@ module Huebot
 
     def get!(path)
       resp, error = get path
-      raise error if error
+      raise Error, error if error
       resp
     end
 
@@ -58,7 +59,7 @@ module Huebot
 
     def post!(path, body)
       resp, error = post path, body
-      raise error if error
+      raise Error, error if error
       resp
     end
 
@@ -74,7 +75,7 @@ module Huebot
 
     def put!(path, body)
       resp, error = put path, body
-      raise error if error
+      raise Error, error if error
       resp
     end
 
@@ -101,7 +102,7 @@ module Huebot
           return data, nil
         end
       else
-        raise "Unexpected response from Bridge (#{resp.code}): #{resp.body}"
+        raise Error, "Unexpected response from Bridge (#{resp.code}): #{resp.body}"
       end
     end
 
