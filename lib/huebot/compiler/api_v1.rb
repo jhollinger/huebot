@@ -1,7 +1,7 @@
 module Huebot
   module Compiler
     class ApiV1
-      DEVICE_FIELDS = %i(light lights group groups device devices).freeze
+      DEVICE_REF = /\A\$([1-9][0-9]*)\Z/
 
       def initialize(api_version)
         @api_version = api_version
@@ -9,176 +9,131 @@ module Huebot
 
       # @return [Huebot::Program]
       def build(tokens, default_name = nil)
-        tokens = tokens.clone
-        prog = Huebot::Program.new
+        prog = Program.new
         prog.name = tokens.delete("name") || default_name
         prog.api_version = @api_version
-
-        # initial state
-        if (val_init = tokens.delete("initial") || tokens.delete(:initial))
-          errors, warnings, state, devices = build_transition val_init
-          prog.errors += errors
-          prog.warnings += warnings
-          prog.instructions << Program::AST::Transition.new(state, devices)
-        end
-
-        # Main controller
-        val_loop = tokens.delete("loop") || tokens.delete(:loop)
-        prog.errors << "'loop' must be 'true' or 'false'." if !val_loop.nil? and ![true, false].include?(val_loop)
-        infinite_loop = val_loop == true
-
-        val_loops = tokens.delete("loops") || tokens.delete(:loops)
-        prog.errors << "'loops' must be a positive integer." if !val_loops.nil? and val_loops.to_i < 0
-        num_loops = val_loops.to_i
-
-        prog.errors << "'loop' and 'loops' are mutually exclusive." if infinite_loop and num_loops > 0
-        main_control_loop =
-          if infinite_loop
-            Loop.new
-          elsif num_loops
-            Loop.new(num_loops)
-          else
-            Loop.new(1)
-          end
-
-        main_controller = Program::AST::Serial.new([], main_control_loop)
-        prog.instructions << main_controller
-
-        # transitions
-        if (val_trns = tokens.delete("transitions") || tokens.delete(:transitions))
-          val_trns.each do |val_trn|
-            errors, warnings, instructions =
-              if val_trn["parallel"] || val_trn[:parallel]
-                build_parallel_transitions val_trn
-              else
-                build_transition val_trn
-              end
-            prog.errors += errors
-            prog.warnings += warnings
-            prog.instructions += instructions
-          end
-        end
-
-        # final state
-        if (val_fnl = tokens.delete("final") || tokens.delete(:final))
-          errors, warnings, instructions = build_transition val_fnl
-          prog.errors += errors
-          prog.warnings += warnings
-          prog.instructions += instructions
-        end
-
-        # be strict about extra crap
-        if (unknown = tokens.keys.map(&:to_s)).any?
-          prog.errors << "Unrecognized values: #{unknown.join ', '}."
-        end
-
-        # Add any warnings
-        # TODO
-        #prog.warnings << "'final' is defined but will never be reached because 'loop' is 'true'." if prog.final_state and prog.loop?
-
+        prog.data = node tokens.dup
         prog
       end
 
       private
 
-      def build_parallel_transitions(t)
-        errors, warnings, instructions = [], [], []
-        controller = Program::AST::Parallel.new([])
-        instructions << controller
+      def node(t, inherited_devices = [])
+        transition = t.delete "transition"
+        serial = t.delete "serial"
+        parallel = t.delete "parallel"
+        lp = t.delete "loop"
+        slp = t.delete "sleep"
+        devices = t.delete("devices")
 
-        parallel = t.delete("parallel") || t.delete(:parallel)
-        if !parallel.is_a? Array
-          errors << "'parallel' must be an array of transitions"
+        errors, warnings = [], []
+        errors << "Only one of 'serial' and 'parallel' may be used in a step" if serial and parallel
+        errors << "'serial' must be an array" if serial and !serial.is_a? Array
+        errors << "'parallel' must be an array" if parallel and !parallel.is_a? Array
+        errors << "A step with 'serial' or 'parallel' may not contain a transition" if transition and (serial or parallel)
+        errors << "Only a 'serial' or 'parallel' step may define 'loop'" if lp and !serial and !parallel
+        errors << "Transition requires devices" if transition and devices.nil? and inherited_devices.nil?
+        errors << "'sleep' must be an integer or float" if slp and !slp.is_a?(Integer) and !slp.is_a?(Float)
+        errors << "Unknown keys in step: #{t.keys.join ", "}" if t.keys.any?
+
+        devices = devices ? build_devices(devices, errors, warnings) : inherited_devices
+        instruction, child_nodes =
+          if transition
+            build_transition(transition, devices, slp, errors, warnings)
+          elsif serial
+            lp = build_loop(lp || {"count" => 1}, errors, warnings)
+            build_serial(serial, lp, devices, slp, errors, warnings)
+          elsif parallel
+            lp = build_loop(lp || {"count" => 1}, errors, warnings)
+            build_parallel(parallel, lp, devices, slp, errors, warnings)
+          else
+            errors << "No transition, serial, or parallel"
+            Program::AST::NoOp
+          end
+
+        Program::AST::Node.new(instruction, child_nodes, errors, warnings)
+      end
+
+      def build_transition(transition, devices, slp, errors, warnings)
+        node = Program::AST::Transition.new(transition, devices, slp)
+        return node, []
+      end
+
+      def build_serial(serial, lp, devices, slp, errors, warnings)
+        node = Program::AST::SerialControl.new(lp, slp)
+        children = serial.is_a?(Array) ? serial.map { |t| node t, devices } : []
+        return node, children
+      end
+
+      def build_parallel(parallel, lp, devices, slp, errors, warnings)
+        node = Program::AST::ParallelControl.new(lp, slp)
+        children = parallel.is_a?(Array) ? parallel.map { |t| node t, devices } : []
+        return node, children
+      end
+
+      def build_loop(t, errors, warnings)
+        case t
+        when true
+          Program::AST::Loop.new(Float::INFINITY)
+        when false
+          Program::AST::Loop.new(1)
+        when Hash
+          count = t.delete "count"
+          hours = t.delete "hours"
+          minutes = t.delete "minutes"
+
+          errors << "'loop.count' must be an integer" if count and !count.is_a? Integer
+          errors << "'loop.hours' must be an integer" if hours and !hours.is_a? Integer
+          errors << "'loop.minutes' must be an integer" if minutes and !minutes.is_a? Integer
+          errors << "'loop' must contain 'count' or 'hours'/'minutes'" if !count and !hours and !minutes
+          errors << "Unknown keys in loop: #{t.keys.join ", "}" if t.keys.any?
+          warnings << "'loop' should not specify both a count and hours/minutes" if count and (hours or minutes)
+
+          Program::AST::Loop.new(count, hours, minutes)
         else
-          parallel.each do |sub_t|
-            sub_errors, sub_warnings, sub_transition = build_transition(sub_t)
-            errors += sub_errors
-            warnings += sub_warnings
-            controller.transitions << sub_transition if sub_transition
-          end
+          errors << "'loop' must be a boolean or an object with 'count' or 'hours' and/or 'minutes'"
+          Program::AST::Loop.new(1)
         end
-
-        if (wait = t.delete("wait") || t.delete(:wait))
-          wait = wait.to_i
-          if wait > 0
-            instructions << Program::AST::Sleep.new(wait)
-          else
-            errors << "'wait' must be a positive integer."
-          end
-        end
-
-        return errors, warnings, transition
       end
 
-      def build_transition(t)
-        errors, warnings, instructions = [], [], []
-        transition = Program::AST::Transition.new
-        transition.devices = []
-        instructions << transition
+      def build_devices(t, errors, warnings)
+        if !t.is_a? Hash
+          errors << "'devices' must be an object"
+          return []
+        end
 
-        map_devices(t, :light, :lights, :light!) { |map_errors, devices|
-          errors += map_errors
-          transition.devices += devices
-        }
+        inputs_val = t.delete "inputs"
+        lights = t.delete "lights"
+        groups = t.delete "groups"
 
-        map_devices(t, :group, :groups, :group!) { |map_errors, devices|
-          errors += map_errors
-          transition.devices += devices
-        }
+        errors << "'devices.lights' must be an array of strings" if lights and (!lights.is_a?(Array) or !lights.all? { |l| l.is_a? String })
+        errors << "'devices.groups' must be an array of strings" if groups and (!groups.is_a?(Array) or !groups.all? { |l| l.is_a? String })
+        errors << "Unknown keys in 'devices': #{t.keys.join ", "}" if t.keys.any?
 
-        map_devices(t, :device, :devices, :var!) { |map_errors, devices|
-          errors += map_errors
-          transition.devices += devices
-        }
-        errors << "Missing light/lights, group/groups, or device/devices" if transition.devices.empty?
-
-        if (wait = t.delete("wait") || t.delete(:wait))
-          wait = wait.to_i
-          if wait > 0
-            instructions << Program::AST::Sleep.new(wait)
+        inputs =
+          case inputs_val
+          when "$all"
+            [Program::AST::DeviceRef.new(:all)]
+          when Array
+            if inputs_val.all? { |ref| ref.is_a?(String) && ref =~ DEVICE_REF }
+              inputs_val.map { |ref|
+                n = ref.match(DEVICE_REF).captures[0].to_i
+                Program::AST::DeviceRef.new(n)
+              }
+            else
+              errors << "If 'devices.inputs' is an array, it must be an array of input variables (e.g. [$1, $2, ...])"
+              []
+            end
+          when nil
+            []
           else
-            errors << "'wait' must be a positive integer."
+            errors << "'devices.inputs' must be '$all' or an array of input variables (e.g. [$1, $2, ...])"
+            []
           end
-        end
 
-        state = {}
-        switch = t.delete("switch")
-        switch = t.delete(:switch) if switch.nil?
-        if !switch.nil?
-          state[:on] = case switch
-                       when true, :on then true
-                       when false, :off then false
-                       else
-                         errors << "Unrecognized 'switch' value '#{switch}'."
-                         nil
-                       end
-        end
-        state[:transitiontime] = t.delete("time") || t.delete(:time) || t.delete("transitiontime") || t.delete(:transitiontime) || 4
-
-        transition.state = t.merge(state).each_with_object({}) { |(key, val), obj|
-          key = key.to_sym
-          obj[key] = val unless DEVICE_FIELDS.include? key
-        }
-        return errors, warnings, instructions
-      end
-
-      private
-
-      def map_devices(t, singular_key, plural_key, ref_type)
-        errors, devices = [], []
-
-        key = t[singular_key.to_s] || t[singular_key]
-        keys = t[plural_key.to_s] || t[plural_key]
-
-        (Array(key) + Array(keys)).each { |x|
-          begin
-            devices += Array(@device_mapper.send(ref_type, x))
-          rescue Huebot::DeviceMapper::Unmapped => e
-            errors << e.message
-          end
-        }
-
-        yield errors, devices
+        inputs + \
+          (lights || []).map { |x| Program::AST::Light.new(x) } + \
+          (groups || []).map { |x| Program::AST::Group.new(x) }
       end
     end
   end

@@ -58,12 +58,12 @@ module Huebot
         else
           sources = files.map { |path|
             src = YAML.load_file(path)
-            version = (src.delete("version") || 1).to_f
+            version = (src.delete("version") || 0.1).to_f
             Program::Src.new(src, path, version)
           }
           if options.read_stdin
             src = YAML.load($stdin.read)
-            version = (src.delete("version") || 1).to_f
+            version = (src.delete("version") || 0.1).to_f
             sources << Program::Src.new(src, "STDIN", version)
           end
           return options, sources
