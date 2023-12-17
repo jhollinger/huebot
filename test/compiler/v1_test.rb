@@ -252,7 +252,7 @@ class CompilerApiV1Test < Minitest::Test
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
         "sleep" => 10,
-        "loop" => {"count" => 5},
+        "loop" => 5,
       },
     })
     assert_equal [], program.errors
@@ -306,7 +306,7 @@ class CompilerApiV1Test < Minitest::Test
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
         "sleep" => 10,
-        "loop" => {"count" => 5},
+        "loop" => 5,
       },
     })
     assert_equal [], program.errors

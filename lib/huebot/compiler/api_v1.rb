@@ -76,15 +76,29 @@ module Huebot
         return instruction, children
       end
 
-      def map_state_keys(t, errors, warnings)
-        state = HUE_STATE_KEYS.each_with_object({}) { |key, obj|
-          obj[key] = t.delete key if t.has_key? key
-        }
+      def map_state_keys(state, errors, warnings)
+        time_val = state.delete "time"
+        case time_val
+        when Integer, Float
+          state["transitiontime"] = (time_val.to_f * 10).round(0)
+        when nil
+          # pass
+        else
+          errors << "'transition.state.time' must be a number"
+        end
 
-        state["transitiontime"] = t.delete("time").to_f.round(1) * 10 if t["time"]
-        state["transitiontime"] = 4 if obj["transitiontime"].to_f < 0.1
+        switch_val = state.delete "switch"
+        case switch_val
+        when true, "on", :on
+          state["on"] = true
+        when false, "off", :off
+          state["on"] = false
+        when nil
+          # pass
+        else
+          errors << "'transition.state.switch' must be one of: true, false, on, off"
+        end
 
-        warnings << "Unknown keys in 'transition.state': #{t.keys.join ", "}" if t.keys.any?
         state
       end
 
