@@ -18,6 +18,11 @@ Huebot::CLI::Helpers.tap { |cli|
 
   when :run
     opts, sources = cli.get_input!
+    if sources.empty?
+      cli.help!
+      exit 1
+    end
+
     bridge, error = Huebot::Bridge.connect
     if error
       $stderr.puts error
@@ -28,12 +33,32 @@ Huebot::CLI::Helpers.tap { |cli|
 
   when :check
     opts, sources = cli.get_input!
+    if sources.empty?
+      cli.help!
+      exit 1
+    end
+
     bridge, error = Huebot::Bridge.connect
     if error
       $stderr.puts error
       exit 1
     end
     retval = Huebot::CLI::Runner.check(bridge, sources, opts)
+    exit retval
+
+  when :"get-state"
+    opts, _sources = cli.get_input!
+    if opts.inputs.empty?
+      cli.help!
+      exit 1
+    end
+
+    bridge, error = Huebot::Bridge.connect
+    if error
+      $stderr.puts error
+      exit 1
+    end
+    retval = Huebot::CLI::Runner.get_state(bridge, opts.inputs)
     exit retval
 
   when :"set-ip"

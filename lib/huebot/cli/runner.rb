@@ -38,6 +38,15 @@ module Huebot
         return 1
       end
 
+      def self.get_state(bridge, inputs)
+        device_mapper = Huebot::DeviceMapper.new(bridge, inputs)
+        device_mapper.each do |device|
+          puts device.name
+          puts "  #{device.get_state}"
+        end
+        0
+      end
+
       def self.set_ip
         config = Huebot::Config.new
         config["ip"] = ip

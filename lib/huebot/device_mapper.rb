@@ -20,6 +20,14 @@ module Huebot
       @all = @devices_by_var.values
     end
 
+    def each
+      if block_given?
+        @all.each { |device| yield device }
+      else
+        @all.each
+      end
+    end
+
     def light!(id)
       @lights_by_id[id] || @lights_by_name[id] || (raise Unmapped, "Unmapped light '#{id}'")
     end

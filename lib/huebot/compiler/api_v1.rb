@@ -1,10 +1,16 @@
+require 'date'
+require 'time'
+
 module Huebot
   module Compiler
     class ApiV1
-      DEVICE_REF = /\A\$([1-9][0-9]*)\Z/
-      TRANSITION_KEYS = ["transition"]
-      SERIAL_KEYS = ["serial"]
-      PARALLEL_KEYS = ["parallel"]
+      DEVICE_REF = /\A\$([1-9][0-9]*)\Z/.freeze
+      TRANSITION_KEYS = ["transition"].freeze
+      SERIAL_KEYS = ["serial"].freeze
+      PARALLEL_KEYS = ["parallel"].freeze
+      TIMER_KEYS = ["timer"].freeze
+      DEADLINE_KEYS = ["until"].freeze
+      HHMM = /\A[0-9]{2}:[0-9]{2}\Z/.freeze
 
       def initialize(api_version)
         @api_version = api_version
@@ -33,7 +39,7 @@ module Huebot
             build_parallel t.fetch("parallel"), errors, warnings, inherited_devices
           else
             errors << "Expected exactly one of: transition, serial, parallel. Found #{t.keys}"
-            Program::AST::NoOp
+            Program::AST::NoOp.new
           end
         Program::AST::Node.new(instruction, child_nodes, errors, warnings)
       end
@@ -134,36 +140,56 @@ module Huebot
         loop_val = t.delete "loop"
         case loop_val
         when true
-          Program::AST::Loop.new(Float::INFINITY)
+          Program::AST::InfiniteLoop.new
         when false, nil
-          Program::AST::Loop.new(1)
+          Program::AST::CountedLoop.new(1)
         when Integer
-          Program::AST::Loop.new(loop_val)
+          Program::AST::CountedLoop.new(loop_val)
         when Hash
-          hours = loop_val.delete "hours"
-          minutes = loop_val.delete "minutes"
-
-          errors << "'loop.hours' must be an integer" if hours and !hours.is_a? Integer
-          errors << "'loop.minutes' must be an integer" if minutes and !minutes.is_a? Integer
-          errors << "If 'loop' is an object it must contain 'hours' and/or 'minutes'" if !hours and !minutes
-          errors << "Unknown keys in loop: #{loop_val.keys.join ", "}" if loop_val.keys.any?
-
-          Program::AST::Loop.new(nil, hours, minutes)
+          case loop_val.keys
+          when TIMER_KEYS
+            build_timer_loop loop_val["timer"], errors, warnings
+          when DEADLINE_KEYS
+            build_deadline_loop loop_val["until"], errors, warnings
+          else
+            errors << "If 'loop' is an object, it must contain 'timer' or 'until'. Found: #{loop_val.keys.join ", "}"
+            Program::AST::CountedLoop.new(1)
+          end
         else
-          errors << "'loop' must be a boolean, an integer, or an object with 'hours' and/or 'minutes'"
-          Program::AST::Loop.new(1)
+          errors << "'loop' must be a boolean, an integer, an object with 'hours' and/or 'minutes', or an object with 'date' and/or 'time'"
+          Program::AST::CountedLoop.new(1)
         end
       end
 
+      def build_timer_loop(t, errors, warnings)
+        hours = t.delete "hours"
+        minutes = t.delete "minutes"
+
+        errors << "'loop.hours' must be an integer" if hours and !hours.is_a? Integer
+        errors << "'loop.minutes' must be an integer" if minutes and !minutes.is_a? Integer
+        errors << "Unknown keys in 'loop.timer': #{t.keys.join ", "}" if t.keys.any?
+
+        Program::AST::TimerLoop.new(hours || 0, minutes || 0)
+      end
+
+      def build_deadline_loop(t, errors, warnings)
+        date = t.delete "date"
+        time = t.delete "time"
+        errors << "Unknown keys in 'loop.until': #{t.keys.join ", "}" if t.keys.any?
+
+        stop_time = build_stop_time(date, time, errors, warnings)
+        Program::AST::DeadlineLoop.new(stop_time)
+      end
+
       def build_sleep(t, errors, warnings)
-        sleep_val = t.delete "sleep"
+        sleep_val = t.delete "pause"
         case sleep_val
         when Integer, Float
           sleep_val
         when nil
           nil
         else
-          errors << "'sleep' must be an integer or float"
+          errors << "'pause' must be an integer or float"
           nil
         end
       end
@@ -206,6 +232,36 @@ module Huebot
         else
           errors << "'#{key}' must be an array of names (found #{val.class.name})"
           []
+        end
+      end
+
+      def build_stop_time(date_val, time_val, errors, warnings)
+        now = Time.now
+        d =
+          begin
+            date_val ? Date.iso8601(date_val) : now.to_date
+          rescue Date::Error
+            errors << "Invalid date '#{date_val}'. Use \"YYYY-MM-DD\" format."
+            Date.today
+          end
+
+        hrs, min =
+          if time_val.nil?
+            [now.hour, now.min]
+          elsif time_val.is_a?(String) and time_val =~ HHMM
+            time_val.split(":", 2).map(&:to_i)
+          else
+            errors << "Invalid time '#{time_val}'. Use \"HH:MM\" format."
+            [0, 0]
+          end
+
+        begin
+          t = Time.new(d.year, d.month, d.day, hrs, min, 0, now.utc_offset)
+          warnings << "Time (#{t.iso8601}) is already in the past" if t < now
+          t
+        rescue ArgumentError
+          errors << "Invalid datetime (year=#{d.year} month=#{d.month} day=#{d.day} hrs=#{hrs} min=#{min} sec=0 offset=#{now.utc_offset})"
+          now
         end
       end
     end

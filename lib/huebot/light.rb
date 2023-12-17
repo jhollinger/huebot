@@ -19,11 +19,11 @@ module Huebot
 
     private
 
-    def state_url
+    def state_change_url
       url "/state"
     end
 
-    def url(path)
+    def url(path = "")
       "/lights/#{id}#{path}"
     end
   end

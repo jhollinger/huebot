@@ -62,23 +62,25 @@ module Huebot
     end
 
     def control_loop(lp)
-      if lp.count
-        case lp.count
-        when Float::INFINITY
-          loop { yield }
-        else
-          lp.count.times { yield }
+      case lp
+      when Program::AST::InfiniteLoop
+        loop { yield }
+      when Program::AST::CountedLoop
+        lp.n.times { yield }
+      when Program::AST::DeadlineLoop
+        until Time.now >= lp.stop_time
+          yield
         end
-      else
-        hrs = lp.hours || 0
-        min = lp.minutes || 0
-        sec = ((hrs * 60) + min) * 60
+      when Program::AST::TimerLoop
+        sec = ((lp.hours * 60) + lp.minutes) * 60
         time = 0
         until time >= sec
           start = Time.now
           yield
           time += (Time.now - start).round
         end
+      else
+        raise Error, "Unexpected loop type '#{lp.class.name}'"
       end
     end
 

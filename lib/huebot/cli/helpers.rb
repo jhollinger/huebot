@@ -49,25 +49,23 @@ module Huebot
         parser.parse!
 
         files = ARGV[1..-1]
-        if files.empty? and !options.read_stdin
-          puts parser.help
-          exit 1
-        elsif (bad_paths = files.select { |p| !File.exist? p }).any?
+        if (bad_paths = files.select { |p| !File.exist? p }).any?
           $stderr.puts "Cannot find #{bad_paths.join ', '}"
           exit 1
-        else
-          sources = files.map { |path|
-            src = YAML.load_file(path)
-            version = (src.delete("version") || 0.1).to_f
-            Program::Src.new(src, path, version)
-          }
-          if options.read_stdin
-            src = YAML.load($stdin.read)
-            version = (src.delete("version") || 0.1).to_f
-            sources << Program::Src.new(src, "STDIN", version)
-          end
-          return options, sources
         end
+
+        sources = files.map { |path|
+          src = YAML.load_file(path)
+          version = (src.delete("version") || 1.0).to_f
+          Program::Src.new(src, path, version)
+        }
+
+        if options.read_stdin
+          src = YAML.load($stdin.read)
+          version = (src.delete("version") || 1.0).to_f
+          sources << Program::Src.new(src, "STDIN", version)
+        end
+        return options, sources
       end
 
       #
@@ -148,6 +146,9 @@ module Huebot
   Validate programs and inputs:
       huebot check file1.yml [file2.yml [file3.yml ...]] [options]
 
+  Print the current state of the given lights and/or groups:
+      huebot get-state [options]
+
   Manually set/clear the IP for your Hue Bridge (useful when on a VPN):
       huebot set-ip 192.168.1.20
       huebot clear-ip
@@ -159,7 +160,6 @@ module Huebot
           ).strip
           opts.on("-lLIGHT", "--light=LIGHT", "Light ID or name") { |l| options.inputs << Light::Input.new(l) }
           opts.on("-gGROUP", "--group=GROUP", "Group ID or name") { |g| options.inputs << Group::Input.new(g) }
-          opts.on("--all", "All lights and groups TODO") { $stderr.puts "Not Implemented"; exit 1 }
           opts.on("-i", "Read program from STDIN") { options.read_stdin = true }
           opts.on("-h", "--help", "Prints this help") { puts opts; exit }
         }

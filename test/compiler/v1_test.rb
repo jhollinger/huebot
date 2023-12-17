@@ -170,9 +170,7 @@ class CompilerApiV1Test < Minitest::Test
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
     assert_equal 10, p.instruction.sleep
-    assert_equal 1, p.instruction.loop.count
-    assert_nil p.instruction.loop.hours
-    assert_nil p.instruction.loop.minutes
+    assert_equal 1, p.instruction.loop.n
     assert_equal 3, p.children.size
     c1, c2, c3 = p.children
 
@@ -215,9 +213,7 @@ class CompilerApiV1Test < Minitest::Test
     p = program.data
     assert_equal Huebot::Program::AST::ParallelControl, p.instruction.class
     assert_equal 10, p.instruction.sleep
-    assert_equal 1, p.instruction.loop.count
-    assert_nil p.instruction.loop.hours
-    assert_nil p.instruction.loop.minutes
+    assert_equal 1, p.instruction.loop.n
     assert_equal 3, p.children.size
     c1, c2, c3 = p.children
 
@@ -261,13 +257,11 @@ class CompilerApiV1Test < Minitest::Test
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
     assert_equal 10, p.instruction.sleep
-    assert_equal 5, p.instruction.loop.count
-    assert_nil p.instruction.loop.hours
-    assert_nil p.instruction.loop.minutes
+    assert_equal 5, p.instruction.loop.n
     assert_equal 3, p.children.size
   end
 
-  def test_build_serial_transitions_with_time_loop
+  def test_build_serial_transitions_with_timer_loop
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
@@ -279,7 +273,7 @@ class CompilerApiV1Test < Minitest::Test
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
         "sleep" => 10,
-        "loop" => {"hours" => 1, "minutes" => 20},
+        "loop" => {"timer" => {"hours" => 1, "minutes" => 20}},
       },
     })
     assert_equal [], program.errors
@@ -288,9 +282,38 @@ class CompilerApiV1Test < Minitest::Test
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
     assert_equal 10, p.instruction.sleep
-    assert_nil p.instruction.loop.count
     assert_equal 1, p.instruction.loop.hours
     assert_equal 20, p.instruction.loop.minutes
+    assert_equal 3, p.children.size
+  end
+
+  def test_build_serial_transitions_with_deadline_loop
+    compiler = Huebot::Compiler::ApiV1.new(1.0)
+    program = compiler.build({
+      "name" => "Test",
+      "serial" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+        "loop" => {"until" => {"date" => "2023-12-17", "time" => "17:05"}},
+      },
+    })
+    assert_equal [], program.errors
+    assert_equal 1, program.warnings.size
+
+    p = program.data
+    assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
+    assert_equal 10, p.instruction.sleep
+    assert_equal 2023, p.instruction.loop.stop_time.year
+    assert_equal 12, p.instruction.loop.stop_time.month
+    assert_equal 17, p.instruction.loop.stop_time.day
+    assert_equal 17, p.instruction.loop.stop_time.hour
+    assert_equal 5, p.instruction.loop.stop_time.min
+    assert_equal 0, p.instruction.loop.stop_time.sec
     assert_equal 3, p.children.size
   end
 
@@ -315,13 +338,11 @@ class CompilerApiV1Test < Minitest::Test
     p = program.data
     assert_equal Huebot::Program::AST::ParallelControl, p.instruction.class
     assert_equal 10, p.instruction.sleep
-    assert_equal 5, p.instruction.loop.count
-    assert_nil p.instruction.loop.hours
-    assert_nil p.instruction.loop.minutes
+    assert_equal 5, p.instruction.loop.n
     assert_equal 3, p.children.size
   end
 
-  def test_build_parallel_transitions_with_time_loop
+  def test_build_parallel_transitions_with_timer_loop
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
@@ -333,7 +354,7 @@ class CompilerApiV1Test < Minitest::Test
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
         "sleep" => 10,
-        "loop" => {"hours" => 1, "minutes" => 20},
+        "loop" => {"timer" => {"hours" => 1, "minutes" => 20}},
       },
     })
     assert_equal [], program.errors
@@ -342,7 +363,6 @@ class CompilerApiV1Test < Minitest::Test
     p = program.data
     assert_equal Huebot::Program::AST::ParallelControl, p.instruction.class
     assert_equal 10, p.instruction.sleep
-    assert_nil p.instruction.loop.count
     assert_equal 1, p.instruction.loop.hours
     assert_equal 20, p.instruction.loop.minutes
     assert_equal 3, p.children.size
@@ -382,7 +402,7 @@ class CompilerApiV1Test < Minitest::Test
                   }
                 },
               ],
-              "loop" => {"hours" => 8},
+              "loop" => {"timer" => {"hours" => 8}},
               "sleep" => 30,
             },
           }
@@ -394,10 +414,7 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
-    assert_nil p.instruction.sleep
-    assert_equal Float::INFINITY, p.instruction.loop.count
-    assert_nil p.instruction.loop.hours
-    assert_nil p.instruction.loop.minutes
+    assert_equal Huebot::Program::AST::InfiniteLoop, p.instruction.loop.class
     assert_equal 3, p.children.size
     c1, c2, c3 = p.children
 
