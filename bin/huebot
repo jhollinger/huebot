@@ -51,13 +51,6 @@ Huebot::CLI::Helpers.tap { |cli|
     retval = Huebot::CLI::Runner.unregister
     exit retval
 
-  when :test
-    puts "!!!!!!!!!!!!!"
-    bridge, error = Huebot::Bridge.connect
-    lights = bridge.lights
-    puts lights[0].id
-
-
   else cli.help!
   end
 }

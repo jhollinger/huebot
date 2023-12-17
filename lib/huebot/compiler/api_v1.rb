@@ -2,6 +2,9 @@ module Huebot
   module Compiler
     class ApiV1
       DEVICE_REF = /\A\$([1-9][0-9]*)\Z/
+      TRANSITION_KEYS = ["transition"]
+      SERIAL_KEYS = ["serial"]
+      PARALLEL_KEYS = ["parallel"]
 
       def initialize(api_version)
         @api_version = api_version
@@ -18,122 +21,169 @@ module Huebot
 
       private
 
-      def node(t, inherited_devices = [])
-        transition = t.delete "transition"
-        serial = t.delete "serial"
-        parallel = t.delete "parallel"
-        lp = t.delete "loop"
-        slp = t.delete "sleep"
-        devices = t.delete("devices")
-
+      def node(t, inherited_devices = nil)
         errors, warnings = [], []
-        errors << "Only one of 'serial' and 'parallel' may be used in a step" if serial and parallel
-        errors << "'serial' must be an array" if serial and !serial.is_a? Array
-        errors << "'parallel' must be an array" if parallel and !parallel.is_a? Array
-        errors << "A step with 'serial' or 'parallel' may not contain a transition" if transition and (serial or parallel)
-        errors << "Only a 'serial' or 'parallel' step may define 'loop'" if lp and !serial and !parallel
-        errors << "Transition requires devices" if transition and devices.nil? and inherited_devices.nil?
-        errors << "'sleep' must be an integer or float" if slp and !slp.is_a?(Integer) and !slp.is_a?(Float)
-        errors << "Unknown keys in step: #{t.keys.join ", "}" if t.keys.any?
-
-        devices = devices ? build_devices(devices, errors, warnings) : inherited_devices
         instruction, child_nodes =
-          if transition
-            build_transition(transition, devices, slp, errors, warnings)
-          elsif serial
-            lp = build_loop(lp || {"count" => 1}, errors, warnings)
-            build_serial(serial, lp, devices, slp, errors, warnings)
-          elsif parallel
-            lp = build_loop(lp || {"count" => 1}, errors, warnings)
-            build_parallel(parallel, lp, devices, slp, errors, warnings)
+          case t.keys
+          when TRANSITION_KEYS
+            build_transition t.fetch("transition"), errors, warnings, inherited_devices
+          when SERIAL_KEYS
+            build_serial t.fetch("serial"), errors, warnings, inherited_devices
+          when PARALLEL_KEYS
+            build_parallel t.fetch("parallel"), errors, warnings, inherited_devices
           else
-            errors << "No transition, serial, or parallel"
+            errors << "Expected exactly one of: transition, serial, parallel. Found #{t.keys}"
             Program::AST::NoOp
           end
-
         Program::AST::Node.new(instruction, child_nodes, errors, warnings)
       end
 
-      def build_transition(transition, devices, slp, errors, warnings)
-        node = Program::AST::Transition.new(transition, devices, slp)
-        return node, []
+      def build_transition(t, errors, warnings, inherited_devices = nil)
+        state = build_state(t, errors, warnings)
+        devices = build_devices(t, errors, warnings, inherited_devices)
+        slp = build_sleep(t, errors, warnings)
+
+        errors << "'transition' requires devices" if devices.empty?
+        errors << "Unknown keys in 'transition': #{t.keys.join ", "}" if t.keys.any?
+
+        instruction = Program::AST::Transition.new(state, devices, slp)
+        return instruction, []
       end
 
-      def build_serial(serial, lp, devices, slp, errors, warnings)
-        node = Program::AST::SerialControl.new(lp, slp)
-        children = serial.is_a?(Array) ? serial.map { |t| node t, devices } : []
-        return node, children
+      def build_serial(t, errors, warnings, inherited_devices = nil)
+        lp = build_loop(t, errors, warnings)
+        slp = build_sleep(t, errors, warnings)
+        devices = build_devices(t, errors, warnings, inherited_devices)
+        children = build_steps(t, errors, warnings, devices)
+
+        errors << "'serial' requires steps" if children.empty?
+        errors << "Unknown keys in 'serial': #{t.keys.join ", "}" if t.keys.any?
+
+        instruction = Program::AST::SerialControl.new(lp, slp)
+        return instruction, children
       end
 
-      def build_parallel(parallel, lp, devices, slp, errors, warnings)
-        node = Program::AST::ParallelControl.new(lp, slp)
-        children = parallel.is_a?(Array) ? parallel.map { |t| node t, devices } : []
-        return node, children
+      def build_parallel(t, errors, warnings, inherited_devices = nil)
+        lp = build_loop(t, errors, warnings)
+        slp = build_sleep(t, errors, warnings)
+        devices = build_devices(t, errors, warnings, inherited_devices)
+        children = build_steps(t, errors, warnings, devices)
+
+        errors << "'parallel' requires steps" if children.empty?
+        errors << "Unknown keys in 'parallel': #{t.keys.join ", "}" if t.keys.any?
+
+        instruction = Program::AST::ParallelControl.new(lp, slp)
+        return instruction, children
+      end
+
+      def build_state(t, errors, warnings)
+        state = t.delete "state"
+        case state
+        when Hash
+          #transform_state_keys state
+          #state[:transitiontime] = 
+          state
+        when nil
+          errors << "'state' is required in a transition"
+          {}
+        else
+          errors << "Expected 'state' to be an object, got a #{state.class.name}"
+          {}
+        end
+      end
+
+      def build_steps(t, errors, warnings, inherited_devices = nil)
+        steps_val = t.delete "steps"
+        case steps_val
+        when Array
+          steps_val.map { |s| node s, inherited_devices }
+        when nil
+          errors << "Missing 'steps'"
+          []
+        else
+          errors << "'steps' should be an array but is a #{steps_val.class.name}"
+          []
+        end
       end
 
       def build_loop(t, errors, warnings)
-        case t
+        loop_val = t.delete "loop"
+        case loop_val
         when true
           Program::AST::Loop.new(Float::INFINITY)
-        when false
+        when false, nil
           Program::AST::Loop.new(1)
         when Hash
-          count = t.delete "count"
-          hours = t.delete "hours"
-          minutes = t.delete "minutes"
+          count = loop_val.delete "count"
+          hours = loop_val.delete "hours"
+          minutes = loop_val.delete "minutes"
 
           errors << "'loop.count' must be an integer" if count and !count.is_a? Integer
           errors << "'loop.hours' must be an integer" if hours and !hours.is_a? Integer
           errors << "'loop.minutes' must be an integer" if minutes and !minutes.is_a? Integer
           errors << "'loop' must contain 'count' or 'hours'/'minutes'" if !count and !hours and !minutes
-          errors << "Unknown keys in loop: #{t.keys.join ", "}" if t.keys.any?
+          errors << "Unknown keys in loop: #{loop_val.keys.join ", "}" if loop_val.keys.any?
           warnings << "'loop' should not specify both a count and hours/minutes" if count and (hours or minutes)
 
           Program::AST::Loop.new(count, hours, minutes)
         else
-          errors << "'loop' must be a boolean or an object with 'count' or 'hours' and/or 'minutes'"
+          errors << "'loop' must be a boolean or an object with 'count' or 'hours'/'minutes'"
           Program::AST::Loop.new(1)
         end
       end
 
-      def build_devices(t, errors, warnings)
-        if !t.is_a? Hash
-          errors << "'devices' must be an object"
-          return []
+      def build_sleep(t, errors, warnings)
+        sleep_val = t.delete "sleep"
+        case sleep_val
+        when Integer, Float
+          sleep_val
+        when nil
+          nil
+        else
+          errors << "'sleep' must be an integer or float"
+          nil
         end
+      end
 
-        inputs_val = t.delete "inputs"
-        lights = t.delete "lights"
-        groups = t.delete "groups"
+      def build_devices(t, errors, warnings, inherited_devices = nil)
+        devices_ref = t.delete("devices") || {}
+        return inherited_devices if devices_ref.empty? and inherited_devices
 
-        errors << "'devices.lights' must be an array of strings" if lights and (!lights.is_a?(Array) or !lights.all? { |l| l.is_a? String })
-        errors << "'devices.groups' must be an array of strings" if groups and (!groups.is_a?(Array) or !groups.all? { |l| l.is_a? String })
-        errors << "Unknown keys in 'devices': #{t.keys.join ", "}" if t.keys.any?
-
-        inputs =
-          case inputs_val
+        refs_val, lights_val, groups_val = devices_ref.delete("inputs"), devices_ref.delete("lights"), devices_ref.delete("groups")
+        lights = lights_val ? device_names(Program::AST::Light, "lights", lights_val, errors, warnings) : []
+        groups = groups_val ? device_names(Program::AST::Group, "groups", groups_val, errors, warnings) : []
+        refs =
+          case refs_val
           when "$all"
             [Program::AST::DeviceRef.new(:all)]
+          when nil
+            []
           when Array
-            if inputs_val.all? { |ref| ref.is_a?(String) && ref =~ DEVICE_REF }
-              inputs_val.map { |ref|
+            if refs_val.all? { |ref| ref.is_a?(String) && ref =~ DEVICE_REF }
+              refs_val.map { |ref|
                 n = ref.match(DEVICE_REF).captures[0].to_i
                 Program::AST::DeviceRef.new(n)
               }
             else
-              errors << "If 'devices.inputs' is an array, it must be an array of input variables (e.g. [$1, $2, ...])"
+              errors << "If 'inputs' is an array, it must be an array of input variables (e.g. [$1, $2, ...])"
               []
             end
-          when nil
-            []
           else
-            errors << "'devices.inputs' must be '$all' or an array of input variables (e.g. [$1, $2, ...])"
+            errors << "'inputs' must be '$all' or an array of input variables (e.g. [$1, $2, ...])"
             []
           end
 
-        inputs + \
-          (lights || []).map { |x| Program::AST::Light.new(x) } + \
-          (groups || []).map { |x| Program::AST::Group.new(x) }
+        errors << "Unknown keys in 'devices': #{devices_ref.keys.join ", "}" if devices_ref.keys.any?
+        lights + groups + refs
+      end
+
+      def device_names(type, key, val, errors, warnings)
+        if val.is_a?(Array) and val.all? { |name| name.is_a? String }
+          val.map { |name| type.new(name) }
+        else
+          errors << "'#{key}' must be an array of names (found #{val.class.name})"
+          []
+        end
       end
     end
   end

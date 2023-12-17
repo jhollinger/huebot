@@ -4,8 +4,10 @@ class CompilerApiV1Test < Minitest::Test
   def test_from_source
     src = Huebot::Program::Src.new({
       "name" => "Test",
-      "transition" => {"bri" => 250},
-      "devices" => {"inputs" => "$all"},
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
+      },
     }, "STDIN", 1.0)
     program = Huebot::Compiler.build(src)
     assert_equal Huebot::Program, program.class
@@ -26,10 +28,10 @@ class CompilerApiV1Test < Minitest::Test
     program = compiler.build({
       "name" => "Test",
       "transition" => {
-        "bri" => 250,
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
+        "sleep" => 0.5,
       },
-      "devices" => {"inputs" => "$all"},
-      "sleep" => 0.5,
     })
 
     assert_equal Huebot::Program, program.class
@@ -44,9 +46,9 @@ class CompilerApiV1Test < Minitest::Test
     program = compiler.build({
       "name" => "Test",
       "transition" => {
-        "bri" => 250,
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
       },
-      "devices" => {"inputs" => "$all"},
     })
 
     assert_equal [], program.errors
@@ -62,10 +64,10 @@ class CompilerApiV1Test < Minitest::Test
     program = compiler.build({
       "name" => "Test",
       "transition" => {
-        "bri" => 250,
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
+        "sleep" => 0.5,
       },
-      "devices" => {"inputs" => "$all"},
-      "sleep" => 0.5,
     })
 
     assert_equal [], program.errors
@@ -80,15 +82,19 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "serial" => [
-        {"transition" => {}, "devices" => {"inputs" => "$all"}},
-        {"transition" => {}, "devices" => {"inputs" => ["$2", "$3"]}},
-        {"parallel" => [
-          {"transition" => {}, "devices" => {"inputs" => ["$4"]}},
-          {"transition" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}},
-          {"transition" => {}, "devices" => {"inputs" => ["$1", "$5"]}},
-        ]}
-      ],
+      "serial" => {
+        "steps" => [
+          {"transition" => {"state" => {}, "devices" => {"inputs" => "$all"}}},
+          {"transition" => {"state" => {}, "devices" => {"inputs" => ["$2", "$3"]}}},
+          {"parallel" => {
+            "steps" => [
+              {"transition" => {"state" => {}, "devices" => {"inputs" => ["$4"]}}},
+              {"transition" => {"state" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}}},
+              {"transition" => {"state" => {}, "devices" => {"inputs" => ["$1", "$5"]}}},
+            ]
+          }}
+        ]
+      },
     })
 
     assert_equal [], program.errors
@@ -100,15 +106,19 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "serial" => [
-        {"transition" => {}, "devices" => {"inputs" => "$all", "lights" => ["LR1"]}},
-        {"transition" => {}, "devices" => {"lights" => ["LR2", "LR3"]}},
-        {"parallel" => [
-          {"transition" => {}, "devices" => {"inputs" => ["$4"]}},
-          {"transition" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}},
-          {"transition" => {}, "devices" => {"inputs" => ["$1", "$5"]}},
-        ]}
-      ],
+      "serial" => {
+        "steps" => [
+          {"transition" => {"state" => {}, "devices" => {"inputs" => "$all", "lights" => ["LR1"]}}},
+          {"transition" => {"state" => {}, "devices" => {"lights" => ["LR2", "LR3"]}}},
+          {"parallel" => {
+            "steps" => [
+              {"transition" => {"state" => {}, "devices" => {"inputs" => ["$4"]}}},
+              {"transition" => {"state" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}}},
+              {"transition" => {"state" => {}, "devices" => {"inputs" => ["$1", "$5"]}}},
+            ]
+          }}
+        ]
+      },
     })
 
     assert_equal [], program.errors
@@ -120,15 +130,19 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "serial" => [
-        {"transition" => {}, "devices" => {"inputs" => "$all", "groups" => ["Upstairs"]}},
-        {"transition" => {}, "devices" => {"groups" => ["Downstairs", "Outside"]}},
-        {"parallel" => [
-          {"transition" => {}, "devices" => {"inputs" => ["$4"]}},
-          {"transition" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}},
-          {"transition" => {}, "devices" => {"inputs" => ["$1", "$5"]}},
-        ]}
-      ],
+      "serial" => {
+        "steps" => [
+          {"transition" => {"state" => {}, "devices" => {"inputs" => "$all", "groups" => ["Upstairs"]}}},
+          {"transition" => {"state" => {}, "devices" => {"groups" => ["Downstairs", "Outside"]}}},
+          {"parallel" => {
+            "steps" => [
+              {"transition" => {"state" => {}, "devices" => {"inputs" => ["$4"]}}},
+              {"transition" => {"state" => {}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}}},
+              {"transition" => {"state" => {}, "devices" => {"inputs" => ["$1", "$5"]}}},
+            ]
+          }}
+        ]
+      },
     })
 
     assert_equal [], program.errors
@@ -140,13 +154,15 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "serial" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {"transition" => {"brightness" => 200}},
-      ],
-      "sleep" => 10,
+      "serial" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
@@ -183,13 +199,15 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "parallel" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {"transition" => {"brightness" => 200}},
-      ],
-      "sleep" => 10,
+      "parallel" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
@@ -226,14 +244,16 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "serial" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {"transition" => {"brightness" => 200}},
-      ],
-      "sleep" => 10,
-      "loop" => {"count" => 5},
+      "serial" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+        "loop" => {"count" => 5},
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
@@ -251,14 +271,16 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "serial" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {"transition" => {"brightness" => 200}},
-      ],
-      "sleep" => 10,
-      "loop" => {"hours" => 1, "minutes" => 20},
+      "serial" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+        "loop" => {"hours" => 1, "minutes" => 20},
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
@@ -276,14 +298,16 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "parallel" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {"transition" => {"brightness" => 200}},
-      ],
-      "sleep" => 10,
-      "loop" => {"count" => 5},
+      "parallel" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+        "loop" => {"count" => 5},
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
@@ -301,14 +325,16 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "parallel" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {"transition" => {"brightness" => 200}},
-      ],
-      "sleep" => 10,
-      "loop" => {"hours" => 1, "minutes" => 20},
+      "parallel" => {
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 200}}},
+        ],
+        "sleep" => 10,
+        "loop" => {"hours" => 1, "minutes" => 20},
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
@@ -326,34 +352,42 @@ class CompilerApiV1Test < Minitest::Test
     compiler = Huebot::Compiler::ApiV1.new(1.0)
     program = compiler.build({
       "name" => "Test",
-      "devices" => {"inputs" => "$all"},
-      "serial" => [
-        {"transition" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}},
-        {"transition" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20},
-        {
-          "parallel" => [
-            {
-              "devices" => {"groups" => ["Upstairs"]},
-              "serial" => [
-                {"transition" => {"brightness" => 50}},
-                {"transition" => {"brightness" => 100}},
-                {"transition" => {"brightness" => 200}},
-              ]
+      "serial" => {
+        "loop" => true,
+        "devices" => {"inputs" => "$all"},
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {
+            "parallel" => {
+              "steps" => [
+                {
+                  "serial" => {
+                    "devices" => {"groups" => ["Upstairs"]},
+                    "steps" => [
+                      {"transition" => {"state" => {"brightness" => 50}}},
+                      {"transition" => {"state" => {"brightness" => 100}}},
+                      {"transition" => {"state" => {"brightness" => 200}}},
+                    ]
+                  }
+                },
+                {
+                  "serial" => {
+                    "devices" => {"groups" => ["Downstairs"]},
+                    "steps" => [
+                      {"transition" => {"state" => {"brightness" => 200}}},
+                      {"transition" => {"state" => {"brightness" => 100}}},
+                      {"transition" => {"state" => {"brightness" => 50}}},
+                    ]
+                  }
+                },
+              ],
+              "loop" => {"hours" => 8},
+              "sleep" => 30,
             },
-            {
-              "devices" => {"groups" => ["Downstairs"]},
-              "serial" => [
-                {"transition" => {"brightness" => 200}},
-                {"transition" => {"brightness" => 100}},
-                {"transition" => {"brightness" => 50}},
-              ]
-            },
-          ],
-          "loop" => {"hours" => 8},
-          "sleep" => 30,
-        }
-      ],
-      "loop" => true,
+          }
+        ]
+      },
     })
     assert_equal [], program.errors
     assert_equal [], program.warnings
