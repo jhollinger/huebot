@@ -28,14 +28,13 @@ module Huebot
     end
 
     def transition(state, device_refs, sleep_time = nil)
-      state[:transitiontime] = state.delete("time") * 10 if state["time"]
-      time = state[:transitiontime] || 4 # in tenths of a second
+      time = (state["transitiontime"] || 4).to_f / 10
       devices = map_devices device_refs
       devices.map { |device|
         Thread.new {
           # TODO error handling
           device.set_state state
-          wait time / 10.to_f
+          wait time
         }
       }.map(&:join)
       wait sleep_time if sleep_time

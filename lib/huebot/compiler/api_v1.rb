@@ -76,13 +76,23 @@ module Huebot
         return instruction, children
       end
 
+      def map_state_keys(t, errors, warnings)
+        state = HUE_STATE_KEYS.each_with_object({}) { |key, obj|
+          obj[key] = t.delete key if t.has_key? key
+        }
+
+        state["transitiontime"] = t.delete("time").to_f.round(1) * 10 if t["time"]
+        state["transitiontime"] = 4 if obj["transitiontime"].to_f < 0.1
+
+        warnings << "Unknown keys in 'transition.state': #{t.keys.join ", "}" if t.keys.any?
+        state
+      end
+
       def build_state(t, errors, warnings)
         state = t.delete "state"
         case state
         when Hash
-          #transform_state_keys state
-          #state[:transitiontime] = 
-          state
+          map_state_keys state, errors, warnings
         when nil
           errors << "'state' is required in a transition"
           {}
@@ -113,21 +123,20 @@ module Huebot
           Program::AST::Loop.new(Float::INFINITY)
         when false, nil
           Program::AST::Loop.new(1)
+        when Integer
+          Program::AST::Loop.new(loop_val)
         when Hash
-          count = loop_val.delete "count"
           hours = loop_val.delete "hours"
           minutes = loop_val.delete "minutes"
 
-          errors << "'loop.count' must be an integer" if count and !count.is_a? Integer
           errors << "'loop.hours' must be an integer" if hours and !hours.is_a? Integer
           errors << "'loop.minutes' must be an integer" if minutes and !minutes.is_a? Integer
-          errors << "'loop' must contain 'count' or 'hours'/'minutes'" if !count and !hours and !minutes
+          errors << "If 'loop' is an object it must contain 'hours' and/or 'minutes'" if !hours and !minutes
           errors << "Unknown keys in loop: #{loop_val.keys.join ", "}" if loop_val.keys.any?
-          warnings << "'loop' should not specify both a count and hours/minutes" if count and (hours or minutes)
 
-          Program::AST::Loop.new(count, hours, minutes)
+          Program::AST::Loop.new(nil, hours, minutes)
         else
-          errors << "'loop' must be a boolean or an object with 'count' or 'hours'/'minutes'"
+          errors << "'loop' must be a boolean, an integer, or an object with 'hours' and/or 'minutes'"
           Program::AST::Loop.new(1)
         end
       end
