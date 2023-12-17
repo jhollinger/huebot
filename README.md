@@ -9,9 +9,9 @@ Program your Hue lights!
 This (very simple) program starts with the light(s) on at full brightness, then enters an hour long loop of slowly dimming and raising the light(s). It finishes by turning them off again. Since no color is specified, the light(s) will retain whatever color they last had.
 
 ```yaml
-devices:
-  inputs: $all
 serial:
+  devices:
+    inputs: $all
   steps:
     - transition:
         state:
