@@ -1,31 +1,43 @@
 # Huebot
 
-Program your Hue lights in YAML!
+Program your Hue lights!
 
     $ huebot run dimmer.yml --light="Office Desk"
 
 **dimmer.yml**
 
-This (very simple) program starts with the light(s) on at full brightness, then enters an infinite loop of slowly dimming and raising the light(s). Since no color is specified, the light(s) will retain whatever color they last had.
+This (very simple) program starts with the light(s) on at full brightness, then enters an hour long loop of slowly dimming and raising the light(s). It finishes by turning them off again. Since no color is specified, the light(s) will retain whatever color they last had.
 
 ```yaml
-initial:
-  switch: on
-  brightness: 254
-  device: $all
+devices:
+  inputs: $all
+serial:
+  steps:
+    - transition:
+        state:
+          switch: on
+          bri: 254
 
-loop: true
+    - serial:
+        loop:
+          timer:
+            hours: 1
+        steps:
+          - transition:
+              state:
+                bri: 150
+                time: 10 # 10 second transition
+              pause: 2   # 2 second pause before the next step
 
-transitions:
-  - device: $all
-    brightness: 150
-    time: 100
-    wait: 20
+          - transition:
+              state:
+                bri: 254
+                time: 10 # 10 second transition
+              pause: 2   # 2 second pause before the next step
 
-  - device: $all
-    brightness: 254
-    time: 100
-    wait: 20
+    - transition:
+        state:
+          switch: off
 ```
 
 The variable `$all` refers to all lights and/or groups passed in on the command line. They can be also referred to individually as `$1`, `$2`, `$3`, etc. The names of lights and groups can also be hard-coded into your program. [See examples in the Wiki.](https://github.com/jhollinger/huebot/wiki)
