@@ -39,7 +39,7 @@ module Huebot
             build_parallel t.fetch("parallel"), errors, warnings, inherited_devices
           else
             errors << "Expected exactly one of: transition, serial, parallel. Found #{t.keys}"
-            Program::AST::NoOp.new
+            [Program::AST::NoOp.new, []]
           end
         Program::AST::Node.new(instruction, child_nodes, errors, warnings)
       end
