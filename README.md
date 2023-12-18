@@ -4,7 +4,7 @@ Program your Hue lights!
 
     $ huebot run dimmer.yml --light="Office Desk"
 
-**dimmer.yml**
+**dimmer.yaml**
 
 This (very simple) program starts with the light(s) on at full brightness, then enters an hour and a half long loop of slowly dimming and raising the light(s). It finishes by turning them off again. Since no color is specified, the light(s) will retain whatever color they last had.
 
@@ -45,7 +45,7 @@ serial:
           switch: off
 ```
 
-**party.yml**
+**party.yaml**
 
 ```yaml
 serial:
