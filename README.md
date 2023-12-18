@@ -6,7 +6,7 @@ Program your Hue lights!
 
 **dimmer.yml**
 
-This (very simple) program starts with the light(s) on at full brightness, then enters an hour long loop of slowly dimming and raising the light(s). It finishes by turning them off again. Since no color is specified, the light(s) will retain whatever color they last had.
+This (very simple) program starts with the light(s) on at full brightness, then enters an hour and a half long loop of slowly dimming and raising the light(s). It finishes by turning them off again. Since no color is specified, the light(s) will retain whatever color they last had.
 
 ```yaml
 serial:
@@ -26,6 +26,7 @@ serial:
         loop:
           timer:
             hours: 1
+            minutes: 30
         steps:
           - transition:
               state:
@@ -42,6 +43,60 @@ serial:
     - transition:
         state:
           switch: off
+```
+
+**party.yml**
+
+```yaml
+serial:
+  steps:
+    # Turn all inputs on to a mid brightness
+    - transition:
+        devices:
+          inputs: $all
+        state:
+          switch: on
+          bri: 100
+
+    # Run these steps in parallel in an infinite loop
+    - parallel:
+        loop: true
+        steps:
+          # Step 1: Fade inputs #1 and #3 up and down
+          - serial:
+              devices:
+                inputs:
+                  - $1
+                  - $3
+              steps:
+                - transition:
+                    state:
+                      bri: 254
+                      time: 10 # transition over 10 seconds
+                    pause: 5   # pause an extra 5 sec after the transition
+                - transition:
+                    state:
+                      bri: 25
+                      time: 10
+                    pause: 5
+
+          # Step 2: Fade inputs #2 and #4 down and up
+          - serial:
+              devices:
+                inputs:
+                  - $2
+                  - $4
+              steps:
+                - transition:
+                    state:
+                      bri: 25
+                      time: 10
+                    pause: 5
+                - transition:
+                    state:
+                      bri: 254
+                      time: 10
+                    pause: 5
 ```
 
 [See the Wiki](https://github.com/jhollinger/huebot/wiki) for full documentation and examples.
