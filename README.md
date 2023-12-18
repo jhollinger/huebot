@@ -11,7 +11,9 @@ This (very simple) program starts with the light(s) on at full brightness, then 
 ```yaml
 serial:
   devices:
-    inputs: $all
+    lights:
+      - LR Lamp 1
+      - LR Lamp 2
   steps:
     - transition:
         state:
@@ -40,7 +42,7 @@ serial:
           switch: off
 ```
 
-The variable `$all` refers to all lights and/or groups passed in on the command line. They can be also referred to individually as `$1`, `$2`, `$3`, etc. The names of lights and groups can also be hard-coded into your program. [See examples in the Wiki.](https://github.com/jhollinger/huebot/wiki)
+[See the Wiki](https://github.com/jhollinger/huebot/wiki) for full documentation and examples.
 
 ## Install
 
