@@ -49,6 +49,8 @@ serial:
 
 **party.yaml**
 
+This more complicated program starts by switching devices on, then enters an infinite loop of two parallel steps. One branch fades up and down while the other branch is fading more lights down _then_ up.
+
 ```yaml
 serial:
   steps:
