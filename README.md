@@ -19,7 +19,7 @@ serial:
   steps:
     - transition:
         state:
-          switch: on
+          on: true
           bri: 254
 
     - serial:
@@ -42,7 +42,7 @@ serial:
 
     - transition:
         state:
-          switch: off
+          on: false
 ```
 
 **party.yaml**
@@ -55,7 +55,7 @@ serial:
         devices:
           inputs: $all
         state:
-          switch: on
+          on: true
           bri: 100
 
     # Run these steps in parallel in an infinite loop
