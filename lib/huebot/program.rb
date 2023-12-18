@@ -20,10 +20,10 @@ module Huebot
       SerialControl = Struct.new(:loop, :sleep)
       ParallelControl = Struct.new(:loop, :sleep)
 
-      InfiniteLoop = Struct.new(:x)
-      CountedLoop = Struct.new(:n)
-      TimerLoop = Struct.new(:hours, :minutes)
-      DeadlineLoop = Struct.new(:stop_time)
+      InfiniteLoop = Struct.new(:pause)
+      CountedLoop = Struct.new(:n, :pause)
+      TimerLoop = Struct.new(:hours, :minutes, :pause)
+      DeadlineLoop = Struct.new(:stop_time, :pause)
 
       DeviceRef = Struct.new(:ref)
       Light = Struct.new(:name)

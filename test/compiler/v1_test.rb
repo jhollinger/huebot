@@ -248,7 +248,7 @@ class CompilerApiV1Test < Minitest::Test
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
         "pause" => 10,
-        "loop" => 5,
+        "loop" => {"count" => 5},
       },
     })
     assert_equal [], program.errors
@@ -329,7 +329,7 @@ class CompilerApiV1Test < Minitest::Test
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
         "pause" => 10,
-        "loop" => 5,
+        "loop" => {"count" => 5},
       },
     })
     assert_equal [], program.errors
@@ -373,7 +373,7 @@ class CompilerApiV1Test < Minitest::Test
     program = compiler.build({
       "name" => "Test",
       "serial" => {
-        "loop" => true,
+        "loop" => {"infinite" => true},
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},

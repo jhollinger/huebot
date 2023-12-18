@@ -8,6 +8,8 @@ module Huebot
       TRANSITION_KEYS = ["transition"].freeze
       SERIAL_KEYS = ["serial"].freeze
       PARALLEL_KEYS = ["parallel"].freeze
+      INFINITE_KEYS = ["infinite"].freeze
+      COUNT_KEYS = ["count"].freeze
       TIMER_KEYS = ["timer"].freeze
       DEADLINE_KEYS = ["until"].freeze
       HHMM = /\A[0-9]{2}:[0-9]{2}\Z/.freeze
@@ -137,24 +139,32 @@ module Huebot
       def build_loop(t, errors, warnings)
         loop_val = t.delete "loop"
         case loop_val
-        when true
-          Program::AST::InfiniteLoop.new
-        when false, nil
-          Program::AST::CountedLoop.new(1)
-        when Integer
-          Program::AST::CountedLoop.new(loop_val)
         when Hash
-          case loop_val.keys
-          when TIMER_KEYS
-            build_timer_loop loop_val["timer"], errors, warnings
-          when DEADLINE_KEYS
-            build_deadline_loop loop_val["until"], errors, warnings
-          else
-            errors << "If 'loop' is an object, it must contain 'timer' or 'until'. Found: #{loop_val.keys.join ", "}"
-            Program::AST::CountedLoop.new(1)
-          end
+          pause = loop_val.delete "pause"
+          errors << "'loop.pause' must be an integer. Found '#{pause.class.name}'" if pause and !pause.is_a? Integer
+
+          lp =
+            case loop_val.keys
+            when INFINITE_KEYS
+              loop_val["infinite"] == true ? Program::AST::InfiniteLoop.new : Program::AST::CountedLoop.new(1)
+            when COUNT_KEYS
+              num = loop_val["count"]
+              errors << "'loop.count' must be an integer. Found '#{num.class.name}'" unless num.is_a? Integer
+              Program::AST::CountedLoop.new(num)
+            when TIMER_KEYS
+              build_timer_loop loop_val["timer"], errors, warnings
+            when DEADLINE_KEYS
+              build_deadline_loop loop_val["until"], errors, warnings
+            else
+              errors << "'loop' must contain exactly one of: 'infinite', 'count', 'timer', or 'until', and optionally 'pause'. Found: #{loop_val.keys.join ", "}"
+              Program::AST::CountedLoop.new(1)
+            end
+          lp.pause = pause
+          lp
+        when nil
+          Program::AST::CountedLoop.new(1)
         else
-          errors << "'loop' must be a boolean, an integer, an object with 'hours' and/or 'minutes', or an object with 'date' and/or 'time'"
+          errors << "'loop' must be an object. Found '#{loop_val.class.name}'"
           Program::AST::CountedLoop.new(1)
         end
       end
