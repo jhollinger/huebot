@@ -30,7 +30,7 @@ class CompilerApiV1Test < Minitest::Test
       "transition" => {
         "devices" => {"inputs" => "$all"},
         "state" => {"bri" => 250},
-        "sleep" => 0.5,
+        "pause" => 0.5,
       },
     })
 
@@ -66,7 +66,7 @@ class CompilerApiV1Test < Minitest::Test
       "transition" => {
         "devices" => {"inputs" => "$all"},
         "state" => {"bri" => 250},
-        "sleep" => 0.5,
+        "pause" => 0.5,
       },
     })
 
@@ -158,10 +158,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
       },
     })
     assert_equal [], program.errors
@@ -201,10 +201,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
       },
     })
     assert_equal [], program.errors
@@ -244,10 +244,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
         "loop" => 5,
       },
     })
@@ -269,10 +269,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
         "loop" => {"timer" => {"hours" => 1, "minutes" => 20}},
       },
     })
@@ -295,10 +295,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
         "loop" => {"until" => {"date" => "2023-12-17", "time" => "17:05"}},
       },
     })
@@ -325,10 +325,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
         "loop" => 5,
       },
     })
@@ -350,10 +350,10 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {"transition" => {"state" => {"brightness" => 200}}},
         ],
-        "sleep" => 10,
+        "pause" => 10,
         "loop" => {"timer" => {"hours" => 1, "minutes" => 20}},
       },
     })
@@ -377,7 +377,7 @@ class CompilerApiV1Test < Minitest::Test
         "devices" => {"inputs" => "$all"},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "sleep" => 20}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Foo"], "groups" => ["Bar"]}, "pause" => 20}},
           {
             "parallel" => {
               "steps" => [
@@ -403,7 +403,7 @@ class CompilerApiV1Test < Minitest::Test
                 },
               ],
               "loop" => {"timer" => {"hours" => 8}},
-              "sleep" => 30,
+              "pause" => 30,
             },
           }
         ]
