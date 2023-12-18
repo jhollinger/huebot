@@ -93,18 +93,6 @@ module Huebot
           errors << "'transition.state.time' must be a number"
         end
 
-        switch_val = state.delete "switch"
-        case switch_val
-        when true, "on", :on
-          state["on"] = true
-        when false, "off", :off
-          state["on"] = false
-        when nil
-          # pass
-        else
-          errors << "'transition.state.switch' must be one of: true, false, on, off"
-        end
-
         state
       end
 
