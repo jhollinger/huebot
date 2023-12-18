@@ -14,6 +14,8 @@ serial:
     lights:
       - LR Lamp 1
       - LR Lamp 2
+    groups:
+      - Dining Room
   steps:
     - transition:
         state:
