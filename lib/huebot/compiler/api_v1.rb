@@ -83,14 +83,24 @@ module Huebot
       end
 
       def map_state_keys(state, errors, warnings)
-        time_val = state.delete "time"
-        case time_val
+        time = state.delete "time"
+        case time
         when Integer, Float
-          state["transitiontime"] = (time_val.to_f * 10).round(0)
+          state["transitiontime"] = (time.to_f * 10).round(0)
         when nil
           # pass
         else
           errors << "'transition.state.time' must be a number"
+        end
+
+        ctk = state.delete "ctk"
+        case ctk
+        when 2000..6530
+          state["ct"] = (1_000_000 / ctk).round # https://en.wikipedia.org/wiki/Mired
+        when nil
+          # pass
+        else
+          errors << "'transition.state.ctk' must be an integer between 2700 and 6530"
         end
 
         state
