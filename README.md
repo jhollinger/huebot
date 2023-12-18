@@ -62,7 +62,7 @@ serial:
     - parallel:
         loop: true
         steps:
-          # Step 1: Fade inputs #1 and #3 up and down
+          # Parallel branch 1: Fade inputs #1 and #3 up and down
           - serial:
               devices:
                 inputs:
@@ -80,7 +80,7 @@ serial:
                       time: 10
                     pause: 5
 
-          # Step 2: Fade inputs #2 and #4 down and up
+          # Parallel branch 2: Fade inputs #2 and #4 down and up
           - serial:
               devices:
                 inputs:
