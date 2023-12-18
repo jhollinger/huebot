@@ -114,9 +114,3 @@ Configuration is stored in `~/.config/huebot`.
 ## License
 
 Huebot is licensed under the MIT license (see LICENSE file).
-
-**TODO**
-
-* Validate number of inputs against compiled programs
-* More explanation various features in Wiki
-* More examples in Wiki
