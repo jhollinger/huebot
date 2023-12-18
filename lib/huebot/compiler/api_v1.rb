@@ -85,6 +85,14 @@ module Huebot
       end
 
       def map_state_keys(state, errors, warnings)
+        # bugfix to YAML
+        case state.delete true
+        when true
+          state["on"] = true
+        when false
+          state["on"] = false
+        end
+
         time = state.delete "time"
         case time
         when Integer, Float
