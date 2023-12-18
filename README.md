@@ -4,6 +4,8 @@ Program your Hue lights!
 
     $ huebot run dimmer.yml --light="Office Desk"
 
+A few examples are below. [See the Wiki](https://github.com/jhollinger/huebot/wiki) for full documentation.
+
 **dimmer.yaml**
 
 This (very simple) program starts with the light(s) on at full brightness, then enters an hour and a half long loop of slowly dimming and raising the light(s). It finishes by turning them off again. Since no color is specified, the light(s) will retain whatever color they last had.
@@ -99,7 +101,7 @@ serial:
                     pause: 5
 ```
 
-[See the Wiki](https://github.com/jhollinger/huebot/wiki) for full documentation and examples.
+[See the Wiki](https://github.com/jhollinger/huebot/wiki) for more documentation and examples.
 
 ## Install
 
