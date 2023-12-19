@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.version = Huebot::VERSION
   s.authors = ['Jordan Hollinger']
   s.email = 'jordan.hollinger@gmail.com'
-  s.date = '2023-12-18'
+  s.date = '2023-12-19'
 
   s.summary = 'Orchestration for Hue devices'
   s.description = 'Declare and run YAML programs for Philips Hue devices'
