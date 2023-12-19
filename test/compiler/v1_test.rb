@@ -448,4 +448,32 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal({"brightness" => 200}, c3.children[1].children[0].instruction.state)
     assert_equal [Huebot::Program::AST::Group.new("Downstairs")], c3.children[1].children[0].instruction.devices
   end
+
+  def test_percent_bri
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => "50%"},
+      },
+    }, "STDIN", 1.0)
+    program = Huebot::Compiler.build(src)
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+
+    assert_equal({"bri" => 127}, program.data.instruction.state)
+  end
+
+  def test_percent_bri_error
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => "150%"},
+      },
+    }, "STDIN", 1.0)
+    program = Huebot::Compiler.build(src)
+    assert_equal ["'transition.state.bri' must be an integer or a percent between 0% and 100%"], program.errors
+    assert_equal [], program.warnings
+  end
 end

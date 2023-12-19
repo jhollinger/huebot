@@ -13,6 +13,8 @@ module Huebot
       TIMER_KEYS = ["timer"].freeze
       DEADLINE_KEYS = ["until"].freeze
       HHMM = /\A[0-9]{2}:[0-9]{2}\Z/.freeze
+      PERCENT_CAPTURE = /\A([0-9]+)%\Z/.freeze
+      MAX_BRI = 254
 
       def initialize(api_version)
         @api_version = api_version
@@ -111,6 +113,21 @@ module Huebot
           # pass
         else
           errors << "'transition.state.ctk' must be an integer between 2700 and 6530"
+        end
+
+        case state["bri"]
+        when Integer, nil
+          # pass
+        when PERCENT_CAPTURE
+          n = $1.to_i
+          if n >= 0 and n <= 100
+            percent = n * 0.01
+            state["bri"] = (MAX_BRI * percent).round
+          else
+            errors << "'transition.state.bri' must be an integer or a percent between 0% and 100%"
+          end
+        else
+          errors << "'transition.state.bri' must be an integer or a percent between 0% and 100%"
         end
 
         state
