@@ -89,7 +89,7 @@ module Huebot
       end
 
       def map_state_keys(state, errors, warnings)
-        # bugfix to YAML
+        # bugfix to YAML - it parses the "on" key as a Boolean
         case state.delete true
         when true
           state["on"] = true

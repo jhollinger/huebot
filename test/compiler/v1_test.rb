@@ -1,4 +1,5 @@
 require 'test_helper'
+require 'yaml'
 
 class CompilerApiV1Test < Minitest::Test
   def test_from_source
@@ -447,6 +448,24 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal [Huebot::Program::AST::Transition], c3.children[1].children.map { |c| c.instruction.class }.uniq
     assert_equal({"brightness" => 200}, c3.children[1].children[0].instruction.state)
     assert_equal [Huebot::Program::AST::Group.new("Downstairs")], c3.children[1].children[0].instruction.devices
+  end
+
+  # YAML is stupid and converts the "on" key to true
+  def test_state_yaml_on_key_fix
+    src = Huebot::Program::Src.new(::YAML.load("
+      name: Test
+      transition:
+        devices:
+          inputs: $all
+        state:
+          on: true
+          bri: 254
+    "), "STDIN", 1.0)
+    program = Huebot::Compiler.build(src)
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+
+    assert_equal({"on" => true, "bri" => 254}, program.data.instruction.state)
   end
 
   def test_state_time
