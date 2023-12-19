@@ -64,7 +64,8 @@ serial:
 
     # Run these steps in parallel in an infinite loop
     - parallel:
-        loop: true
+        loop:
+          infinite: true
         steps:
           # Parallel branch 1: Fade inputs #1 and #3 up and down
           - serial:
