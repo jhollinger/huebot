@@ -14,6 +14,8 @@ module Huebot
       DEADLINE_KEYS = ["until"].freeze
       HHMM = /\A[0-9]{2}:[0-9]{2}\Z/.freeze
       PERCENT_CAPTURE = /\A([0-9]+)%\Z/.freeze
+      MIN_KELVIN = 2000
+      MAX_KELVIN = 6530
       MAX_BRI = 254
 
       def initialize(api_version)
@@ -107,12 +109,12 @@ module Huebot
 
         ctk = state.delete "ctk"
         case ctk
-        when 2000..6530
+        when MIN_KELVIN..MAX_KELVIN
           state["ct"] = (1_000_000 / ctk).round # https://en.wikipedia.org/wiki/Mired
         when nil
           # pass
         else
-          errors << "'transition.state.ctk' must be an integer between 2700 and 6530"
+          errors << "'transition.state.ctk' must be an integer between #{MIN_KELVIN} and #{MAX_KELVIN}"
         end
 
         case state["bri"]

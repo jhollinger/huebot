@@ -449,7 +449,52 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal [Huebot::Program::AST::Group.new("Downstairs")], c3.children[1].children[0].instruction.devices
   end
 
-  def test_percent_bri
+  def test_state_time
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 200, "time" => 3.5},
+      },
+    }, "STDIN", 1.0)
+    program = Huebot::Compiler.build(src)
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+
+    assert_equal(35, program.data.instruction.state["transitiontime"])
+  end
+
+  def test_state_kelvin_ct
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"ctk" => 5000},
+      },
+    }, "STDIN", 1.0)
+    program = Huebot::Compiler.build(src)
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+
+    assert_equal({"ct" => 200}, program.data.instruction.state)
+  end
+
+  def test_state_kelvin_ct_range_error
+    min_k = Huebot::Compiler::ApiV1::MIN_KELVIN
+    max_k = Huebot::Compiler::ApiV1::MAX_KELVIN
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"ctk" => max_k + 1},
+      },
+    }, "STDIN", 1.0)
+    program = Huebot::Compiler.build(src)
+    assert_equal ["'transition.state.ctk' must be an integer between #{min_k} and #{max_k}"], program.errors
+    assert_equal [], program.warnings
+  end
+
+  def test_state_percent_bri
     src = Huebot::Program::Src.new({
       "name" => "Test",
       "transition" => {
@@ -464,7 +509,7 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal({"bri" => 127}, program.data.instruction.state)
   end
 
-  def test_percent_bri_error
+  def test_state_percent_bri_range_error
     src = Huebot::Program::Src.new({
       "name" => "Test",
       "transition" => {
