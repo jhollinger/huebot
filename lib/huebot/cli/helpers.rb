@@ -60,8 +60,10 @@ module Huebot
           Program::Src.new(src, path, version)
         }
 
-        if options.read_stdin
+        if !$stdin.isatty or options.read_stdin
+          puts "Please enter your YAML Huebot program below, followed by Ctrl+d:" if options.read_stdin
           src = YAML.load($stdin.read)
+          puts "Executing..." if options.read_stdin
           version = (src.delete("version") || 1.0).to_f
           sources << Program::Src.new(src, "STDIN", version)
         end
@@ -141,14 +143,15 @@ module Huebot
       huebot ls
 
   Run program(s):
-      huebot run file1.yml [file2.yml [file3.yml ...]] [options]
+      huebot run prog1.yaml [prog2.yaml [prog3.yaml ...]] [options]
 
-  Run a program from stdin:
-      cat prog.yaml | huebot run
-      huebot run -
+  Run program from STDIN:
+      cat prog1.yaml | huebot run [options]
+      huebot run [options] < prog1.yaml
+      huebot run -i [options]
 
   Validate programs and inputs:
-      huebot check file1.yml [file2.yml [file3.yml ...]] [options]
+      huebot check prog1.yaml [prog2.yaml [prog3.yaml ...]] [options]
 
   Print the current state of the given lights and/or groups:
       huebot get-state [options]
