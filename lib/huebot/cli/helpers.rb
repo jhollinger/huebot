@@ -143,6 +143,10 @@ module Huebot
   Run program(s):
       huebot run file1.yml [file2.yml [file3.yml ...]] [options]
 
+  Run a program from stdin:
+      cat prog.yaml | huebot run
+      huebot run -
+
   Validate programs and inputs:
       huebot check file1.yml [file2.yml [file3.yml ...]] [options]
 
