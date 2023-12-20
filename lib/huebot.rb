@@ -10,7 +10,8 @@ module Huebot
   autoload :Group, 'huebot/group'
   autoload :DeviceMapper, 'huebot/device_mapper'
   autoload :Program, 'huebot/program'
-  autoload :Compiler, 'huebot/compiler/compiler.rb'
+  autoload :Compiler, 'huebot/compiler/compiler'
   autoload :Bot, 'huebot/bot'
+  autoload :Logging, 'huebot/logging/logging'
   autoload :VERSION, 'huebot/version'
 end

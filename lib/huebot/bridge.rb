@@ -7,18 +7,16 @@ module Huebot
       return new(client)
     end
 
-    attr_reader :client
-
     def initialize(client)
       @client = client
     end
 
     def lights
-      client.get!("/lights").map { |(id, attrs)| Light.new(client, id, attrs) }
+      @client.get!("/lights").map { |(id, attrs)| Light.new(@client, id, attrs) }
     end
 
     def groups
-      client.get!("/groups").map { |(id, attrs)| Group.new(client, id, attrs) }
+      @client.get!("/groups").map { |(id, attrs)| Group.new(@client, id, attrs) }
     end
   end
 end

@@ -3,8 +3,9 @@ module Huebot
   class Bot
     Error = Class.new(StandardError)
 
-    def initialize(device_mapper)
+    def initialize(device_mapper, logger: nil)
       @device_mapper = device_mapper
+      @logger = logger || Logging::NullLogger.new
     end
 
     def execute(program)
@@ -30,10 +31,13 @@ module Huebot
     def transition(state, device_refs, sleep_time = nil)
       time = (state["transitiontime"] || 4).to_f / 10
       devices = map_devices device_refs
+      @logger.log :transition, {devices: devices.map(&:name)}
+
       devices.map { |device|
         Thread.new {
           # TODO error handling
-          device.set_state state
+          _res = device.set_state state
+          @logger.log :set_state, {device: device.name, state: state, result: nil}
           wait time
         }
       }.map(&:join)
@@ -41,8 +45,9 @@ module Huebot
     end
 
     def serial(nodes, lp, sleep_time = nil)
-      control_loop(lp) {
-        nodes.map { |node|
+      control_loop(lp) { |loop_type|
+        @logger.log :serial, {loop: loop_type}
+        nodes.each { |node|
           exec node
         }
       }
@@ -50,7 +55,8 @@ module Huebot
     end
 
     def parallel(nodes, lp, sleep_time = nil)
-      control_loop(lp) {
+      control_loop(lp) { |loop_type|
+        @logger.log :parallel, {loop: loop_type}
         nodes.map { |node|
           Thread.new {
             # TODO error handling
@@ -65,17 +71,17 @@ module Huebot
       case lp
       when Program::AST::InfiniteLoop
         loop {
-          yield
+          yield :infinite
           wait lp.pause if lp.pause
         }
       when Program::AST::CountedLoop
         lp.n.times {
-          yield
+          yield :counted
           wait lp.pause if lp.pause
         }
       when Program::AST::DeadlineLoop
         until Time.now >= lp.stop_time
-          yield
+          yield :deadline
           wait lp.pause if lp.pause
         end
       when Program::AST::TimerLoop
@@ -83,7 +89,7 @@ module Huebot
         time = 0
         until time >= sec
           start = Time.now
-          yield
+          yield :timer
           wait lp.pause if lp.pause
           time += (Time.now - start).round
         end
@@ -111,6 +117,7 @@ module Huebot
 
     def wait(seconds)
       # TODO sleep in small bursts in a loop so can detect if an Interrupt was caught
+      @logger.log :pause, {time: seconds}
       sleep seconds
     end
   end

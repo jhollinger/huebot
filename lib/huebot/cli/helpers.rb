@@ -168,6 +168,7 @@ module Huebot
           opts.on("-lLIGHT", "--light=LIGHT", "Light ID or name") { |l| options.inputs << Light::Input.new(l) }
           opts.on("-gGROUP", "--group=GROUP", "Group ID or name") { |g| options.inputs << Group::Input.new(g) }
           opts.on("-i", "Read program from STDIN") { options.read_stdin = true }
+          opts.on("--debug", "Print debug info during run") { options.debug = true }
           opts.on("-h", "--help", "Prints this help") { puts opts; exit }
         }
         return options, parser

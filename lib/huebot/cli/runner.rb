@@ -18,7 +18,8 @@ module Huebot
         found_errors, _found_warnings, missing_devices = Helpers.check! programs, device_mapper, $stderr
         return 1 if found_errors || missing_devices
 
-        bot = Huebot::Bot.new(device_mapper)
+        logger = opts.debug ? Logging::IOLogger.new($stdout) : nil
+        bot = Huebot::Bot.new(device_mapper, logger: logger)
         programs.each { |prog| bot.execute prog }
         return 0
       rescue ::Huebot::Error => e
