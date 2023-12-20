@@ -1,10 +1,10 @@
 module Huebot
+  # The Huebot runtime
   class Bot
     Error = Class.new(StandardError)
 
     def initialize(device_mapper)
       @device_mapper = device_mapper
-      #@client = device_mapper.bridge.client
     end
 
     def execute(program)
@@ -64,12 +64,19 @@ module Huebot
     def control_loop(lp)
       case lp
       when Program::AST::InfiniteLoop
-        loop { yield }
+        loop {
+          yield
+          wait lp.pause if lp.pause
+        }
       when Program::AST::CountedLoop
-        lp.n.times { yield }
+        lp.n.times {
+          yield
+          wait lp.pause if lp.pause
+        }
       when Program::AST::DeadlineLoop
         until Time.now >= lp.stop_time
           yield
+          wait lp.pause if lp.pause
         end
       when Program::AST::TimerLoop
         sec = ((lp.hours * 60) + lp.minutes) * 60
@@ -77,6 +84,7 @@ module Huebot
         until time >= sec
           start = Time.now
           yield
+          wait lp.pause if lp.pause
           time += (Time.now - start).round
         end
       else
