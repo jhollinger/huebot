@@ -1,17 +1,17 @@
 module Huebot
   module CLI
     module Runner
-      def self.ls(bridge)
-        puts "Lights\n" + bridge.lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
-          "\nGroups\n" + bridge.groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
+      def self.ls(lights, groups, io = $stdout)
+        puts "Lights\n" + lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
+          "\nGroups\n" + groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
         return 0
       rescue ::Huebot::Error => e
         $stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
 
-      def self.run(bridge, sources, opts)
-        device_mapper = Huebot::DeviceMapper.new(lights: bridge.lights, groups: bridge.groups, inputs: opts.inputs)
+      def self.run(sources, lights, groups, opts)
+        device_mapper = Huebot::DeviceMapper.new(lights: lights, groups: groups, inputs: opts.inputs)
         programs = sources.map { |src|
           Huebot::Compiler.build src
         }
@@ -27,8 +27,8 @@ module Huebot
         return 1
       end
 
-      def self.check(bridge, sources, opts)
-        device_mapper = Huebot::DeviceMapper.new(lights: bridge.lights, groups: bridge.groups, inputs: opts.inputs)
+      def self.check(sources, lights, groups, opts)
+        device_mapper = Huebot::DeviceMapper.new(lights: lights, groups: groups, inputs: opts.inputs)
         programs = sources.map { |src|
           Huebot::Compiler.build src
         }
@@ -39,8 +39,8 @@ module Huebot
         return 1
       end
 
-      def self.get_state(bridge, inputs)
-        device_mapper = Huebot::DeviceMapper.new(lights: bridge.lights, groups: bridge.groups, inputs: opts.inputs)
+      def self.get_state(lights, groups, inputs)
+        device_mapper = Huebot::DeviceMapper.new(lights: lights, groups: groups, inputs: opts.inputs)
         device_mapper.each do |device|
           puts device.name
           puts "  #{device.get_state}"

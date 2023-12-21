@@ -13,7 +13,8 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = Huebot::CLI::Runner.ls bridge
+
+    retval = Huebot::CLI::Runner.ls(bridge.lights, bridge.groups)
     exit retval
 
   when :run
@@ -28,7 +29,8 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = Huebot::CLI::Runner.run(bridge, sources, opts)
+
+    retval = Huebot::CLI::Runner.run(sources, bridge.lights, bridge.groups, opts)
     exit retval
 
   when :check
@@ -43,7 +45,8 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = Huebot::CLI::Runner.check(bridge, sources, opts)
+
+    retval = Huebot::CLI::Runner.check(sources, bridge.lights, bridge.groups, opts)
     exit retval
 
   when :"get-state"
@@ -58,7 +61,8 @@ Huebot::CLI::Helpers.tap { |cli|
       $stderr.puts error
       exit 1
     end
-    retval = Huebot::CLI::Runner.get_state(bridge, opts.inputs)
+
+    retval = Huebot::CLI::Runner.get_state(bridge.lights, bridge.groups, opts.inputs)
     exit retval
 
   when :"set-ip"
