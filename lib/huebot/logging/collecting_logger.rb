@@ -11,7 +11,7 @@ module Huebot
       def log(event_type, data = {})
         now = Time.now
         @mut.synchronize {
-          @events << [event_type, data, now]
+          @events << [now, event_type, data]
         }
         self
       end

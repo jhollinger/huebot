@@ -2,20 +2,18 @@ module Huebot
   class DeviceMapper
     Unmapped = Class.new(Error)
 
-    def initialize(bridge, inputs = [])
-      all_lights, all_groups = bridge.lights, bridge.groups
-
-      @lights_by_id = all_lights.reduce({}) { |a, l| a[l.id] = l; a }
-      @lights_by_name = all_lights.reduce({}) { |a, l| a[l.name] = l; a }
-      @groups_by_id = all_groups.reduce({}) { |a, g| a[g.id] = g; a }
-      @groups_by_name = all_groups.reduce({}) { |a, g| a[g.name] = g; a }
+    def initialize(lights: [], groups:[], inputs: [])
+      @lights_by_id = lights.each_with_object({}) { |l, a| a[l.id] = l }
+      @lights_by_name = lights.each_with_object({}) { |l, a| a[l.name] = l }
+      @groups_by_id = groups.each_with_object({}) { |g, a| a[g.id] = g }
+      @groups_by_name = groups.each_with_object({}) { |g, a| a[g.name] = g }
       @devices_by_var = inputs.each_with_index.each_with_object({}) { |(x, idx), obj|
         obj[idx + 1] =
           case x
           when Light::Input then @lights_by_id[x.val.to_i] || @lights_by_name[x.val]
           when Group::Input then @groups_by_id[x.val.to_i] || @groups_by_name[x.val]
           else raise Error, "Invalid input: #{x}"
-          end || raise(Unmapped, "Could not find #{x.class.name[8..-6].downcase} with id or name '#{x.val}'")
+          end || raise(Unmapped, "Could not find #{x.class.name[8..-8].downcase} with id or name '#{x.val}'")
       }
       @all = @devices_by_var.values
     end

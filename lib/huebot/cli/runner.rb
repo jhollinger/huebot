@@ -11,7 +11,7 @@ module Huebot
       end
 
       def self.run(bridge, sources, opts)
-        device_mapper = Huebot::DeviceMapper.new(bridge, opts.inputs)
+        device_mapper = Huebot::DeviceMapper.new(lights: bridge.lights, groups: bridge.groups, inputs: opts.inputs)
         programs = sources.map { |src|
           Huebot::Compiler.build src
         }
@@ -28,7 +28,7 @@ module Huebot
       end
 
       def self.check(bridge, sources, opts)
-        device_mapper = Huebot::DeviceMapper.new(bridge, opts.inputs)
+        device_mapper = Huebot::DeviceMapper.new(lights: bridge.lights, groups: bridge.groups, inputs: opts.inputs)
         programs = sources.map { |src|
           Huebot::Compiler.build src
         }
@@ -40,7 +40,7 @@ module Huebot
       end
 
       def self.get_state(bridge, inputs)
-        device_mapper = Huebot::DeviceMapper.new(bridge, inputs)
+        device_mapper = Huebot::DeviceMapper.new(lights: bridge.lights, groups: bridge.groups, inputs: opts.inputs)
         device_mapper.each do |device|
           puts device.name
           puts "  #{device.get_state}"

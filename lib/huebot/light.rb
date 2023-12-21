@@ -14,7 +14,6 @@ module Huebot
       @client = client
       @id = id.to_i
       @name = attrs.fetch("name")
-      @attrs = attrs
     end
 
     private

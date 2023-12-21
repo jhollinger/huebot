@@ -1,7 +1,6 @@
 module Huebot
   class Bridge
-    def self.connect(config = Huebot::Config.new)
-      client = Client.new(config)
+    def self.connect(client = Client.new)
       error = client.connect
       return nil, error if error
       return new(client)

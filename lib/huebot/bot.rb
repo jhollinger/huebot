@@ -3,13 +3,16 @@ module Huebot
   class Bot
     Error = Class.new(StandardError)
 
-    def initialize(device_mapper, logger: nil)
+    def initialize(device_mapper, waiter: nil, logger: nil)
       @device_mapper = device_mapper
       @logger = logger || Logging::NullLogger.new
+      @waiter = waiter || Waiter
     end
 
     def execute(program)
+      @logger.log :start, {program: program.name}
       exec program.data
+      @logger.log :stop, {program: program.name}
     end
 
     private
@@ -116,9 +119,14 @@ module Huebot
     end
 
     def wait(seconds)
-      # TODO sleep in small bursts in a loop so can detect if an Interrupt was caught
       @logger.log :pause, {time: seconds}
-      sleep seconds
+      @waiter.call seconds
+    end
+
+    module Waiter
+      def self.call(seconds)
+        sleep seconds
+      end
     end
   end
 end
