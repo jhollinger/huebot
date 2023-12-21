@@ -40,13 +40,19 @@ Huebot::CLI::Helpers.tap { |cli|
       exit 1
     end
 
-    bridge, error = Huebot::Bridge.connect
-    if error
-      $stderr.puts error
-      exit 1
-    end
+    lights, groups =
+      if opts.no_device_check
+        [[], []]
+      else
+        bridge, error = Huebot::Bridge.connect
+        if error
+          $stderr.puts error
+          exit 1
+        end
+        [bridge.lights, bridge.groups]
+      end
 
-    retval = Huebot::CLI::Runner.check(sources, bridge.lights, bridge.groups, opts)
+    retval = Huebot::CLI::Runner.check(sources, lights, groups, opts)
     exit retval
 
   when :"get-state"
