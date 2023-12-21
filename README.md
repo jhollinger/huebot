@@ -1,8 +1,8 @@
 # Huebot
 
-Program your Hue lights!
+Program your Hue lights using YAML or JSON!
 
-    $ huebot run dimmer.yml --light="Office Desk"
+    $ huebot run dimmer.yaml --light="Office Desk"
 
 A few examples are below. [See the Wiki](https://github.com/jhollinger/huebot/wiki) for full documentation.
 

@@ -8,8 +8,8 @@ require 'huebot'
 Huebot::CLI::Helpers.tap { |cli|
   case cli.get_cmd
   when :ls
-    cli.get_args(num: 0)
-    opts = cli.default_options
+    cli.get_args!(num: 0)
+    opts = cli.get_opts!
     bridge, error = Huebot::Bridge.connect
     if error
       $stderr.puts error
@@ -20,7 +20,8 @@ Huebot::CLI::Helpers.tap { |cli|
     exit retval
 
   when :run
-    opts, sources = cli.get_input!
+    opts = cli.get_opts!
+    sources = cli.get_input! opts
     if sources.empty?
       cli.help!
       exit 1
@@ -36,7 +37,8 @@ Huebot::CLI::Helpers.tap { |cli|
     exit retval
 
   when :check
-    opts, sources = cli.get_input!
+    opts = cli.get_opts!
+    sources = cli.get_input! opts
     if sources.empty?
       cli.help!
       exit 1
@@ -58,7 +60,7 @@ Huebot::CLI::Helpers.tap { |cli|
     exit retval
 
   when :"get-state"
-    opts, _sources = cli.get_input!
+    opts = cli.get_opts!
     if opts.inputs.empty?
       cli.help!
       exit 1
@@ -74,22 +76,22 @@ Huebot::CLI::Helpers.tap { |cli|
     exit retval
 
   when :"set-ip"
-    ip = cli.get_args(num: 1).first
-    opts = cli.default_options
+    opts = cli.get_opts!
+    ip = cli.get_args!(num: 1).first
     config = Huebot::CLI::Config.new
     retval = Huebot::CLI::Runner.set_ip config, ip, opts
     exit retval
 
   when :"clear-ip"
-    cli.get_args(num: 0)
-    opts = cli.default_options
+    opts = cli.get_opts!
+    cli.get_args!(num: 0)
     config = Huebot::CLI::Config.new
     retval = Huebot::CLI::Runner.clear_ip config, opts
     exit retval
 
   when :unregister
-    cli.get_args(num: 0)
-    opts = cli.default_options
+    opts = cli.get_opts!
+    cli.get_args!(num: 0)
     config = Huebot::CLI::Config.new
     retval = Huebot::CLI::Runner.unregister config, opts
     exit retval

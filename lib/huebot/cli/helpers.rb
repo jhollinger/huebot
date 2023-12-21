@@ -1,5 +1,6 @@
 require 'optparse'
 require 'yaml'
+require 'json'
 
 module Huebot
   module CLI
@@ -9,65 +10,80 @@ module Huebot
       #
       # @return [Symbol]
       #
-      def self.get_cmd
-        ARGV[0].to_s.to_sym
+      def self.get_cmd(argv = ARGV)
+        argv[0].to_s.to_sym
       end
 
-      def self.get_args(min: nil, max: nil, num: nil)
-        args = ARGV[1..]
+      def self.get_args!(argv = ARGV, min: nil, max: nil, num: nil)
+        args, error = get_args(argv, min: min, max: max, num: num)
+        if error
+          $stderr.puts error
+          exit 1
+        end
+        args
+      end
+
+      def self.get_args(argv = ARGV, min: nil, max: nil, num: nil)
+        args = argv[1..]
         if num
           if num != args.size
-            $stderr.puts "Expected #{num} args, found #{args.size}"
-            exit 1
+            return nil, "Expected #{num} args, found #{args.size}"
           end
         elsif min and max
           if args.size < min or args.size > max
-            $stderr.puts "Expected #{min}-#{max} args, found #{args.size}"
+            return nil, "Expected #{min}-#{max} args, found #{args.size}"
           end
         elsif min
           if args.size < min
-            $stderr.puts "Expected at least #{num} args, found #{args.size}"
-            exit 1
+            return nil, "Expected at least #{min} args, found #{args.size}"
           end
         elsif max
           if args.size > max
-            $stderr.puts "Expected no more than #{num} args, found #{args.size}"
-            exit 1
+            return nil, "Expected no more than #{max} args, found #{args.size}"
           end
         end
-        args
+        return args, nil
       end
 
       #
       # Parses and returns input from the CLI. Serious errors might result in the program exiting.
       #
-      # @return [Huebot::CLI::Options] All given CLI options
+      # @param opts [Huebot::CLI::Options] All given CLI options
       # @return [Array<Huebot::Program::Src>] Array of given program sources
       #
-      def self.get_input!
-        options, parser = option_parser
-        parser.parse!
-
-        files = ARGV[1..-1]
+      def self.get_input!(opts, argv = ARGV)
+        files = argv[1..-1]
         if (bad_paths = files.select { |p| !File.exist? p }).any?
-          options.stderr.puts "Cannot find #{bad_paths.join ', '}"
-          exit 1
+          opts.stderr.puts "Cannot find #{bad_paths.join ', '}"
+          return []
         end
 
         sources = files.map { |path|
-          src = YAML.load_file(path)
+          ext = File.extname path
+          src =
+            case ext
+            when ".yaml", ".yml"
+              YAML.safe_load(File.read path) || {}
+            when ".json"
+              JSON.load(File.read path) || {}
+            else
+              opts.stderr.puts "Unknown file extension '#{ext}'. Expected .yaml, .yml, or .json"
+              return []
+            end
           version = (src.delete("version") || 1.0).to_f
           Program::Src.new(src, path, version)
         }
 
-        if !$stdin.isatty or options.read_stdin
-          options.stdout.puts "Please enter your YAML Huebot program below, followed by Ctrl+d:" if options.read_stdin
-          src = YAML.load($stdin.read)
-          options.stdout.puts "Executing..." if options.read_stdin
+        if !opts.stdin.isatty or opts.read_stdin
+          opts.stdout.puts "Please enter your YAML or JSON Huebot program below, followed by Ctrl+d:" if opts.read_stdin
+          raw = opts.stdin.read.lstrip
+          src = raw[0] == "{" ? JSON.load(raw) : YAML.safe_load(raw)
+
+          opts.stdout.puts "Executing..." if opts.read_stdin
           version = (src.delete("version") || 1.0).to_f
           sources << Program::Src.new(src, "STDIN", version)
         end
-        return options, sources
+        sources
       end
 
       #
@@ -95,27 +111,35 @@ module Huebot
 
         all_lights = programs.reduce([]) { |acc, p| acc + p.light_names }
         if (missing_lights = device_mapper.missing_lights all_lights).any?
-          print_messages! io, "Unknown lights", missing_lights
+          print_messages! io, "Unknown lights", missing_lights unless quiet
         end
 
         all_groups = programs.reduce([]) { |acc, p| acc + p.group_names }
         if (missing_groups = device_mapper.missing_groups all_groups).any?
-          print_messages! io, "Unknown groups", missing_groups
+          print_messages! io, "Unknown groups", missing_groups unless quiet
         end
 
         all_vars = programs.reduce([]) { |acc, p| acc + p.device_refs }
         if (missing_vars = device_mapper.missing_vars all_vars).any?
-          print_messages! io, "Unknown device inputs", missing_vars.map { |d| "$#{d}" }
+          print_messages! io, "Unknown device inputs", missing_vars.map { |d| "$#{d}" } unless quiet
         end
 
         invalid_devices = missing_lights.size + missing_groups.size + missing_vars.size
         return invalid_progs.any?, imperfect_progs.any?, invalid_devices > 0
       end
 
+      def self.get_opts!
+        opts = default_options
+        parser = option_parser opts
+        parser.parse!
+        opts
+      end
+
       # Print help and exit
       def self.help!
-        options, parser = option_parser
-        options.stdout.puts parser.help
+        opts = default_options
+        parser = option_parser opts
+        opts.stdout.puts parser.help
         exit 1
       end
 
@@ -135,15 +159,14 @@ module Huebot
         }
       end
 
-      def self.option_parser
-        options = default_options
-        parser = OptionParser.new { |opts|
+      def self.option_parser(options)
+        OptionParser.new { |opts|
           opts.banner = %(
   List all lights and groups:
       huebot ls
 
   Run program(s):
-      huebot run prog1.yaml [prog2.yaml [prog3.yaml ...]] [options]
+      huebot run prog1.yaml [prog2.yml [prog3.json ...]] [options]
 
   Run program from STDIN:
       cat prog1.yaml | huebot run [options]
@@ -172,7 +195,6 @@ module Huebot
           opts.on("--no-device-check", "Don't validate devices against the Bridge ('check' cmd only)") { options.no_device_check = true }
           opts.on("-h", "--help", "Prints this help") { options.stdout.puts opts; exit }
         }
-        return options, parser
       end
 
       def self.default_options
