@@ -1,12 +1,12 @@
 module Huebot
   module CLI
     module Runner
-      def self.ls(lights, groups, io = $stdout)
-        puts "Lights\n" + lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
+      def self.ls(lights, groups, opts)
+        opts.stdout.puts "Lights\n" + lights.map { |l| "  #{l.id}: #{l.name}" }.join("\n") + \
           "\nGroups\n" + groups.map { |g| "  #{g.id}: #{g.name}" }.join("\n")
         return 0
       rescue ::Huebot::Error => e
-        $stderr.puts "#{e.class.name}: #{e.message}"
+        opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
 
@@ -15,15 +15,15 @@ module Huebot
           Huebot::Compiler.build src
         }
         device_mapper = Huebot::DeviceMapper.new(lights: lights, groups: groups, inputs: opts.inputs)
-        found_errors, _found_warnings, missing_devices = Helpers.check! programs, device_mapper, $stderr
+        found_errors, _found_warnings, missing_devices = Helpers.check! programs, device_mapper, opts.stderr
         return 1 if found_errors || missing_devices
 
-        logger = opts.debug ? Logging::IOLogger.new($stdout) : nil
-        bot = Huebot::Bot.new(device_mapper, logger: logger)
+        logger = opts.debug ? Logging::IOLogger.new(opts.stdout) : nil
+        bot = Huebot::Bot.new(device_mapper, logger: logger, waiter: opts.bot_waiter)
         programs.each { |prog| bot.execute prog }
         return 0
       rescue ::Huebot::Error => e
-        $stderr.puts "#{e.class.name}: #{e.message}"
+        opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
 
@@ -42,46 +42,43 @@ module Huebot
         end
 
         device_mapper = Huebot::DeviceMapper.new(lights: lights, groups: groups, inputs: opts.inputs)
-        found_errors, found_warnings, missing_devices = Helpers.check! programs, device_mapper, $stdout
+        found_errors, found_warnings, missing_devices = Helpers.check! programs, device_mapper, opts.stderr
         return (found_errors || found_warnings || missing_devices) ? 1 : 0
       rescue ::Huebot::Error => e
-        $stderr.puts "#{e.class.name}: #{e.message}"
+        opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
 
-      def self.get_state(lights, groups, inputs)
+      def self.get_state(lights, groups, opts)
         device_mapper = Huebot::DeviceMapper.new(lights: lights, groups: groups, inputs: opts.inputs)
         device_mapper.each do |device|
-          puts device.name
-          puts "  #{device.get_state}"
+          opts.stdout.puts device.name
+          opts.stdout.puts "  #{device.get_state}"
         end
         0
       end
 
-      def self.set_ip
-        config = Huebot::Config.new
+      def self.set_ip(config, ip, opts)
         config["ip"] = ip
         0
       rescue ::Huebot::Error => e
-        $stderr.puts "#{e.class.name}: #{e.message}"
+        opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
 
-      def self.clear_ip
-        config = Huebot::Config.new
+      def self.clear_ip(config, opts)
         config["ip"] = nil
         0
       rescue ::Huebot::Error => e
-        $stderr.puts "#{e.class.name}: #{e.message}"
+        opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
 
-      def self.unregister
-        config = Huebot::Config.new
+      def self.unregister(config, opts)
         config.clear
         0
       rescue ::Huebot::Error => e
-        $stderr.puts "#{e.class.name}: #{e.message}"
+        opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
       end
     end

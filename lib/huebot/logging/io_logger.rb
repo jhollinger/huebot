@@ -1,3 +1,5 @@
+require 'json'
+
 module Huebot
   module Logging
     class IOLogger

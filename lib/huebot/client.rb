@@ -10,7 +10,7 @@ module Huebot
 
     attr_reader :config
 
-    def initialize(config = Huebot::Config.new)
+    def initialize(config = Huebot::CLI::Config.new)
       @config = config
       @ip = config["ip"] # NOTE will usually be null
       @username = nil

@@ -8,8 +8,9 @@ module Huebot
     #
     # @attr inputs [Array<String>]
     #
-    Options = Struct.new(:inputs, :read_stdin, :debug, :no_device_check)
+    Options = Struct.new(:inputs, :read_stdin, :debug, :no_device_check, :stdin, :stdout, :stderr, :bot_waiter)
 
+    autoload :Config, 'huebot/cli/config'
     autoload :Helpers, 'huebot/cli/helpers'
     autoload :Runner, 'huebot/cli/runner'
   end

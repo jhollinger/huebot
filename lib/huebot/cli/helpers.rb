@@ -50,7 +50,7 @@ module Huebot
 
         files = ARGV[1..-1]
         if (bad_paths = files.select { |p| !File.exist? p }).any?
-          $stderr.puts "Cannot find #{bad_paths.join ', '}"
+          options.stderr.puts "Cannot find #{bad_paths.join ', '}"
           exit 1
         end
 
@@ -61,9 +61,9 @@ module Huebot
         }
 
         if !$stdin.isatty or options.read_stdin
-          puts "Please enter your YAML Huebot program below, followed by Ctrl+d:" if options.read_stdin
+          options.stdout.puts "Please enter your YAML Huebot program below, followed by Ctrl+d:" if options.read_stdin
           src = YAML.load($stdin.read)
-          puts "Executing..." if options.read_stdin
+          options.stdout.puts "Executing..." if options.read_stdin
           version = (src.delete("version") || 1.0).to_f
           sources << Program::Src.new(src, "STDIN", version)
         end
@@ -114,8 +114,8 @@ module Huebot
 
       # Print help and exit
       def self.help!
-        _, parser = option_parser
-        puts parser.help
+        options, parser = option_parser
+        options.stdout.puts parser.help
         exit 1
       end
 
@@ -136,7 +136,7 @@ module Huebot
       end
 
       def self.option_parser
-        options = Options.new([], false)
+        options = default_options
         parser = OptionParser.new { |opts|
           opts.banner = %(
   List all lights and groups:
@@ -170,9 +170,17 @@ module Huebot
           opts.on("-i", "Read program from STDIN") { options.read_stdin = true }
           opts.on("--debug", "Print debug info during run") { options.debug = true }
           opts.on("--no-device-check", "Don't validate devices against the Bridge ('check' cmd only)") { options.no_device_check = true }
-          opts.on("-h", "--help", "Prints this help") { puts opts; exit }
+          opts.on("-h", "--help", "Prints this help") { options.stdout.puts opts; exit }
         }
         return options, parser
+      end
+
+      def self.default_options
+        options = Options.new([], false)
+        options.stdin = $stdin
+        options.stdout = $stdout
+        options.stderr = $stderr
+        options
       end
     end
   end
