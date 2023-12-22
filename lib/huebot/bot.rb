@@ -81,7 +81,7 @@ module Huebot
           wait lp.pause.post if lp.pause&.post
         }
       when Program::AST::CountedLoop
-        number(lp.n).times {
+        number(lp.n).round.times {
           wait lp.pause.pre if lp.pause&.pre
           yield :counted
           wait lp.pause.post if lp.pause&.post

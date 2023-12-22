@@ -217,11 +217,27 @@ module Huebot
 
       def build_random(t, errors, warnings)
         random = t.delete("random") || {}
-        min, max = random.delete("min").to_i, random.delete("max").to_i
-        errors << "'random.min' must be a positive integer less than 'max'" unless min > -1 and min < max
-        errors << "'random.max' must be a positive integer greater than 'min'" unless max > -1 and max > min
+        min = build_random_n(random, "min", errors, warnings)
+        max = build_random_n(random, "max", errors, warnings)
+        errors << "'random.max' must be greater than 'random.min'" unless max > min
         errors << "Unknown keys in 'random': #{random.keys.join ", "}" if random.keys.any?
         Program::AST::RandomNum.new(min, max)
+      end
+
+      def build_random_n(t, name, errors, warnings)
+        n = t.delete name
+        case n
+        when Integer, Float
+          if n >= 0
+            n
+          else
+            errors << "'random.#{name}' must be >= 0, found #{n}"
+            0
+          end
+        else
+          errors << "'random.#{name}' must be an integer or float > 0, found #{n.class.name}"
+          0
+        end
       end
 
       def build_timer_loop(t, errors, warnings)
