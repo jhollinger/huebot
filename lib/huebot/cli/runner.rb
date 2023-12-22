@@ -8,6 +8,8 @@ module Huebot
       rescue ::Huebot::Error => e
         opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
+      rescue Interrupt
+        return 130
       end
 
       def self.run(sources, lights, groups, opts)
@@ -25,6 +27,8 @@ module Huebot
       rescue ::Huebot::Error => e
         opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
+      rescue Interrupt
+        return 130
       end
 
       def self.check(sources, lights, groups, opts)
@@ -47,6 +51,8 @@ module Huebot
       rescue ::Huebot::Error => e
         opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
+      rescue Interrupt
+        return 130
       end
 
       def self.get_state(lights, groups, opts)
@@ -56,6 +62,8 @@ module Huebot
           opts.stdout.puts "  #{device.get_state}"
         end
         0
+      rescue Interrupt
+        return 130
       end
 
       def self.set_ip(config, ip, opts)
@@ -64,6 +72,8 @@ module Huebot
       rescue ::Huebot::Error => e
         opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
+      rescue Interrupt
+        return 130
       end
 
       def self.clear_ip(config, opts)
@@ -72,6 +82,8 @@ module Huebot
       rescue ::Huebot::Error => e
         opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
+      rescue Interrupt
+        return 130
       end
 
       def self.unregister(config, opts)
@@ -80,6 +92,8 @@ module Huebot
       rescue ::Huebot::Error => e
         opts.stderr.puts "#{e.class.name}: #{e.message}"
         return 1
+      rescue Interrupt
+        return 130
       end
     end
   end
