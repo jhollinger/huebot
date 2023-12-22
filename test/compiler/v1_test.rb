@@ -56,6 +56,66 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal [], program.warnings
     assert_equal Huebot::Program::AST::Transition, program.data.instruction.class
     assert_equal({"bri" => 250}, program.data.instruction.state)
+    assert program.data.instruction.wait
+    assert_equal [Huebot::Program::AST::DeviceRef], program.data.instruction.devices.map(&:class)
+    assert_equal [], program.data.children
+  end
+
+  def test_transition_1_1
+    compiler = Huebot::Compiler::ApiV1.new(1.1)
+    program = compiler.build({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
+      },
+    })
+
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+    assert_equal Huebot::Program::AST::Transition, program.data.instruction.class
+    assert_equal({"bri" => 250}, program.data.instruction.state)
+    assert program.data.instruction.wait
+    assert_equal [Huebot::Program::AST::DeviceRef], program.data.instruction.devices.map(&:class)
+    assert_equal [], program.data.children
+  end
+
+  def test_transition_1_1_with_wait_true
+    compiler = Huebot::Compiler::ApiV1.new(1.1)
+    program = compiler.build({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
+        "wait" => true,
+      },
+    })
+
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+    assert_equal Huebot::Program::AST::Transition, program.data.instruction.class
+    assert_equal({"bri" => 250}, program.data.instruction.state)
+    assert program.data.instruction.wait
+    assert_equal [Huebot::Program::AST::DeviceRef], program.data.instruction.devices.map(&:class)
+    assert_equal [], program.data.children
+  end
+
+  def test_transition_1_1_with_wait_false
+    compiler = Huebot::Compiler::ApiV1.new(1.1)
+    program = compiler.build({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => 250},
+        "wait" => false,
+      },
+    })
+
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+    assert_equal Huebot::Program::AST::Transition, program.data.instruction.class
+    assert_equal({"bri" => 250}, program.data.instruction.state)
+    refute program.data.instruction.wait
     assert_equal [Huebot::Program::AST::DeviceRef], program.data.instruction.devices.map(&:class)
     assert_equal [], program.data.children
   end

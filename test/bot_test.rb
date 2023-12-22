@@ -237,4 +237,25 @@ class BotTest < Minitest::Test
       "#{event} #{data.to_json}"
     }
   end
+
+  def test_transition_with_wait_false
+    program = @compiler.build({
+      "name" => "Test",
+      "transition" => {
+        "state" => {"brightness" => 50},
+        "devices" => {"inputs" => ["$4"]},
+        "wait" => false,
+      }
+    })
+
+    @bot.execute program
+    assert_equal [
+      "start {\"program\":\"Test\"}",
+      "transition {\"devices\":[\"Office Go\"]}",
+      "set_state {\"device\":\"Office Go\",\"state\":{\"brightness\":50},\"result\":null}",
+      "stop {\"program\":\"Test\"}",
+    ], @logger.events.map { |(_ts, event, data)|
+      "#{event} #{data.to_json}"
+    }
+  end
 end

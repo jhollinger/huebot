@@ -16,7 +16,7 @@ module Huebot
     module AST
       Node = Struct.new(:instruction, :children, :errors, :warnings)
 
-      Transition = Struct.new(:state, :devices, :pause)
+      Transition = Struct.new(:state, :devices, :wait, :pause)
       SerialControl = Struct.new(:loop, :pause)
       ParallelControl = Struct.new(:loop, :pause)
 

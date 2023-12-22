@@ -59,11 +59,12 @@ module Huebot
         state = build_state(t, errors, warnings)
         devices = build_devices(t, errors, warnings, inherited_devices)
         pause = build_pause(t, errors, warnings)
+        wait = @api_version >= 1.1 ? build_wait(t, errors, warnings) : true
 
         errors << "'transition' requires devices" if devices.empty?
         errors << "Unknown keys in 'transition': #{t.keys.join ", "}" if t.keys.any?
 
-        instruction = Program::AST::Transition.new(state, devices, pause)
+        instruction = Program::AST::Transition.new(state, devices, wait, pause)
         return instruction, []
       end
 
@@ -267,6 +268,19 @@ module Huebot
         else
           errors << "'pause' must be an integer or float"
           nil
+        end
+      end
+
+      def build_wait(t, errors, warnings)
+        wait = t.delete "wait"
+        case wait
+        when true, false
+          wait
+        when nil
+          true
+        else
+          errors << "'transition.wait' must be true or false"
+          true
         end
       end
 

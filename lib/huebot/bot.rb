@@ -18,50 +18,49 @@ module Huebot
     private
 
     def exec(node)
-      i = node.instruction
-      case i
+      case node.instruction
       when Program::AST::Transition
-        transition i.state, i.devices, i.pause
+        transition node.instruction
       when Program::AST::SerialControl
-        serial node.children, i.loop, i.pause
+        serial node.children, node.instruction
       when Program::AST::ParallelControl
-        parallel node.children, i.loop, i.pause
+        parallel node.children, node.instruction
       else
-        raise Error, "Unexpected instruction '#{i.class.name}'"
+        raise Error, "Unexpected instruction '#{node.instruction.class.name}'"
       end
     end
 
-    def transition(state, device_refs, pause = nil)
-      time = (state["transitiontime"] || 4).to_f / 10
-      devices = map_devices device_refs
+    def transition(i)
+      time = (i.state["transitiontime"] || 4).to_f / 10
+      devices = map_devices i.devices
       @logger.log :transition, {devices: devices.map(&:name)}
 
-      wait pause.pre if pause&.pre
+      wait i.pause.pre if i.pause&.pre
       devices.map { |device|
         Thread.new {
           # TODO error handling
-          _res = device.set_state state
-          @logger.log :set_state, {device: device.name, state: state, result: nil}
-          wait time
+          _res = device.set_state i.state
+          @logger.log :set_state, {device: device.name, state: i.state, result: nil}
+          wait time if i.wait
         }
       }.map(&:join)
-      wait pause.post if pause&.post
+      wait i.pause.post if i.pause&.post
     end
 
-    def serial(nodes, lp, pause = nil)
-      wait pause.pre if pause&.pre
-      control_loop(lp) { |loop_type|
+    def serial(nodes, i)
+      wait i.pause.pre if i.pause&.pre
+      control_loop(i.loop) { |loop_type|
         @logger.log :serial, {loop: loop_type}
         nodes.each { |node|
           exec node
         }
       }
-      wait pause.post if pause&.post
+      wait i.pause.post if i.pause&.post
     end
 
-    def parallel(nodes, lp, pause = nil)
-      wait pause.pre if pause&.pre
-      control_loop(lp) { |loop_type|
+    def parallel(nodes, i)
+      wait i.pause.pre if i.pause&.pre
+      control_loop(i.loop) { |loop_type|
         @logger.log :parallel, {loop: loop_type}
         nodes.map { |node|
           Thread.new {
@@ -70,7 +69,7 @@ module Huebot
           }
         }.map(&:join)
       }
-      wait pause.post if pause&.post
+      wait i.pause.post if i.pause&.post
     end
 
     def control_loop(lp)
