@@ -41,7 +41,7 @@ module Huebot
           # TODO error handling
           _res = device.set_state i.state
           @logger.log :set_state, {device: device.name, state: i.state, result: nil}
-          wait time if i.wait
+          wait Program::AST::Num.new(time) if i.wait
         }
       }.map(&:join)
       wait i.pause.post if i.pause&.post
@@ -81,7 +81,7 @@ module Huebot
           wait lp.pause.post if lp.pause&.post
         }
       when Program::AST::CountedLoop
-        lp.n.times {
+        number(lp.n).times {
           wait lp.pause.pre if lp.pause&.pre
           yield :counted
           wait lp.pause.post if lp.pause&.post
@@ -124,9 +124,21 @@ module Huebot
       }
     end
 
-    def wait(seconds)
+    def wait(n)
+      seconds = number n
       @logger.log :pause, {time: seconds}
       @waiter.call seconds
+    end
+
+    def number(n)
+      case n
+      when Program::AST::Num
+        n.n
+      when Program::AST::RandomNum
+        rand(n.min..n.max)
+      else
+        raise Error, "Unknown numeric type. Expected Program::AST::Num, Program::AST::NRandomNum, found: #{n.class.name}"
+      end
     end
 
     module Waiter

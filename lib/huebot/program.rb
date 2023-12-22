@@ -26,6 +26,8 @@ module Huebot
       DeadlineLoop = Struct.new(:stop_time, :pause)
 
       Pause = Struct.new(:pre, :post)
+      Num = Struct.new(:n)
+      RandomNum = Struct.new(:min, :max)
       DeviceRef = Struct.new(:ref)
       Light = Struct.new(:name)
       Group = Struct.new(:name)

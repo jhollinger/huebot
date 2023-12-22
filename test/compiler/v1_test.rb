@@ -136,7 +136,7 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal Huebot::Program::AST::Transition, program.data.instruction.class
     assert_equal({"bri" => 250}, program.data.instruction.state)
     assert_equal [Huebot::Program::AST::DeviceRef], program.data.instruction.devices.map(&:class)
-    assert_equal 0.5, program.data.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(0.5), program.data.instruction.pause.post
   end
 
   def test_transition_with_1_1_pause
@@ -158,8 +158,8 @@ class CompilerApiV1Test < Minitest::Test
     assert_equal Huebot::Program::AST::Transition, program.data.instruction.class
     assert_equal({"bri" => 250}, program.data.instruction.state)
     assert_equal [Huebot::Program::AST::DeviceRef], program.data.instruction.devices.map(&:class)
-    assert_equal 1.5, program.data.instruction.pause.pre
-    assert_equal 0.5, program.data.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(1.5), program.data.instruction.pause.pre
+    assert_equal Huebot::Program::AST::Num.new(0.5), program.data.instruction.pause.post
   end
 
   def test_device_refs
@@ -253,8 +253,8 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
-    assert_equal 1, p.instruction.loop.n
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(1), p.instruction.loop.n
     assert_equal 3, p.children.size
     c1, c2, c3 = p.children
 
@@ -269,7 +269,7 @@ class CompilerApiV1Test < Minitest::Test
       Huebot::Program::AST::Light.new("Foo"),
       Huebot::Program::AST::Group.new("Bar"),
     ], c2.instruction.devices)
-    assert_equal 20, c2.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(20), c2.instruction.pause.post
 
     assert_equal Huebot::Program::AST::Transition, c3.instruction.class
     assert_equal({"brightness" => 200}, c3.instruction.state)
@@ -296,8 +296,8 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::ParallelControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
-    assert_equal 1, p.instruction.loop.n
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(1), p.instruction.loop.n
     assert_equal 3, p.children.size
     c1, c2, c3 = p.children
 
@@ -312,7 +312,7 @@ class CompilerApiV1Test < Minitest::Test
       Huebot::Program::AST::Light.new("Foo"),
       Huebot::Program::AST::Group.new("Bar"),
     ], c2.instruction.devices)
-    assert_equal 20, c2.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(20), c2.instruction.pause.post
 
     assert_equal Huebot::Program::AST::Transition, c3.instruction.class
     assert_equal({"brightness" => 200}, c3.instruction.state)
@@ -340,8 +340,8 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
-    assert_equal 5, p.instruction.loop.n
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(5), p.instruction.loop.n
     assert_equal 3, p.children.size
   end
 
@@ -365,7 +365,7 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
     assert_equal 1, p.instruction.loop.hours
     assert_equal 20, p.instruction.loop.minutes
     assert_equal 3, p.children.size
@@ -391,7 +391,7 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::SerialControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
     assert_equal 2023, p.instruction.loop.stop_time.year
     assert_equal 12, p.instruction.loop.stop_time.month
     assert_equal 17, p.instruction.loop.stop_time.day
@@ -421,8 +421,8 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::ParallelControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
-    assert_equal 5, p.instruction.loop.n
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(5), p.instruction.loop.n
     assert_equal 3, p.children.size
   end
 
@@ -446,7 +446,7 @@ class CompilerApiV1Test < Minitest::Test
 
     p = program.data
     assert_equal Huebot::Program::AST::ParallelControl, p.instruction.class
-    assert_equal 10, p.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(10), p.instruction.pause.post
     assert_equal 1, p.instruction.loop.hours
     assert_equal 20, p.instruction.loop.minutes
     assert_equal 3, p.children.size
@@ -513,11 +513,11 @@ class CompilerApiV1Test < Minitest::Test
       Huebot::Program::AST::Light.new("Foo"),
       Huebot::Program::AST::Group.new("Bar"),
     ], c2.instruction.devices)
-    assert_equal 20, c2.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(20), c2.instruction.pause.post
 
     assert_equal Huebot::Program::AST::ParallelControl, c3.instruction.class
     assert_equal 8, c3.instruction.loop.hours
-    assert_equal 30, c3.instruction.pause.post
+    assert_equal Huebot::Program::AST::Num.new(30), c3.instruction.pause.post
     assert_equal 2, c3.children.size
 
     assert_equal Huebot::Program::AST::SerialControl, c3.children[0].instruction.class
@@ -622,5 +622,51 @@ class CompilerApiV1Test < Minitest::Test
     program = Huebot::Compiler.build(src)
     assert_equal ["'transition.state.bri' must be an integer or a percent between 0% and 100%"], program.errors
     assert_equal [], program.warnings
+  end
+
+  def test_random_loop
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "serial" => {
+        "loop" => {
+          "random" => {"min" => 1, "max" => 10},
+        },
+        "steps" => [
+          "transition" => {
+            "devices" => {"inputs" => "$all"},
+            "state" => {"bri" => "100%"},
+          },
+        ],
+      },
+    }, "STDIN", 1.2)
+    program = Huebot::Compiler.build(src)
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+
+    assert_equal Huebot::Program::AST::RandomNum, program.data.instruction.loop.n.class
+    assert_equal 1, program.data.instruction.loop.n.min
+    assert_equal 10, program.data.instruction.loop.n.max
+  end
+
+  def test_random_pause
+    src = Huebot::Program::Src.new({
+      "name" => "Test",
+      "transition" => {
+        "devices" => {"inputs" => "$all"},
+        "state" => {"bri" => "100%"},
+        "pause" => {
+          "after" => {
+            "random" => {"min" => 1, "max" => 10},
+          }
+        }
+      },
+    }, "STDIN", 1.2)
+    program = Huebot::Compiler.build(src)
+    assert_equal [], program.errors
+    assert_equal [], program.warnings
+
+    assert_equal Huebot::Program::AST::RandomNum, program.data.instruction.pause.post.class
+    assert_equal 1, program.data.instruction.pause.post.min
+    assert_equal 10, program.data.instruction.pause.post.max
   end
 end

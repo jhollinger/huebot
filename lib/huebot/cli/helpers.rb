@@ -5,7 +5,7 @@ require 'json'
 module Huebot
   module CLI
     module Helpers
-      DEFAULT_API_VERSION = 1.1
+      DEFAULT_API_VERSION = 1.2
 
       #
       # Returns the command given to huebot.

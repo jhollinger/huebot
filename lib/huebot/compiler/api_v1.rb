@@ -10,6 +10,8 @@ module Huebot
       PARALLEL_KEYS = ["parallel"].freeze
       INFINITE_KEYS = ["infinite"].freeze
       COUNT_KEYS = ["count"].freeze
+      RANDOM_KEYS = ["random"].freeze
+      MIN_MAX = ["min", "max"].freeze
       TIMER_KEYS = ["timer"].freeze
       DEADLINE_KEYS = ["until"].freeze
       HHMM = /\A[0-9]{2}:[0-9]{2}\Z/.freeze
@@ -187,27 +189,39 @@ module Huebot
           lp =
             case loop_val.keys
             when INFINITE_KEYS
-              loop_val["infinite"] == true ? Program::AST::InfiniteLoop.new : Program::AST::CountedLoop.new(1)
+              loop_val.fetch("infinite") == true ? Program::AST::InfiniteLoop.new : Program::AST::CountedLoop.new(Program::AST::Num.new(1))
             when COUNT_KEYS
-              num = loop_val["count"]
+              num = loop_val.fetch("count")
               errors << "'loop.count' must be an integer. Found '#{num.class.name}'" unless num.is_a? Integer
-              Program::AST::CountedLoop.new(num)
+              Program::AST::CountedLoop.new(Program::AST::Num.new(num))
+            when RANDOM_KEYS
+              n = build_random loop_val, errors, warnings
+              Program::AST::CountedLoop.new(n)
             when TIMER_KEYS
-              build_timer_loop loop_val["timer"], errors, warnings
+              build_timer_loop loop_val.fetch("timer"), errors, warnings
             when DEADLINE_KEYS
-              build_deadline_loop loop_val["until"], errors, warnings
+              build_deadline_loop loop_val.fetch("until"), errors, warnings
             else
               errors << "'loop' must contain exactly one of: 'infinite', 'count', 'timer', or 'until', and optionally 'pause'. Found: #{loop_val.keys.join ", "}"
-              Program::AST::CountedLoop.new(1)
+              Program::AST::CountedLoop.new(Program::AST::Num.new(1))
             end
           lp.pause = pause
           lp
         when nil
-          Program::AST::CountedLoop.new(1)
+          Program::AST::CountedLoop.new(Program::AST::Num.new(1))
         else
           errors << "'loop' must be an object. Found '#{loop_val.class.name}'"
-          Program::AST::CountedLoop.new(1)
+          Program::AST::CountedLoop.new(Program::AST::Num.new(1))
         end
+      end
+
+      def build_random(t, errors, warnings)
+        random = t.delete("random") || {}
+        min, max = random.delete("min").to_i, random.delete("max").to_i
+        errors << "'random.min' must be a positive integer less than 'max'" unless min > -1 and min < max
+        errors << "'random.max' must be a positive integer greater than 'min'" unless max > -1 and max > min
+        errors << "Unknown keys in 'random': #{random.keys.join ", "}" if random.keys.any?
+        Program::AST::RandomNum.new(min, max)
       end
 
       def build_timer_loop(t, errors, warnings)
@@ -234,6 +248,7 @@ module Huebot
         case @api_version
         when 1.0 then build_pause_1_0(t, errors, warnings)
         when 1.1 then build_pause_1_1(t, errors, warnings)
+        when 1.2 then build_pause_1_2(t, errors, warnings)
         else raise Error, "Unknown api version '#{@api_version}'"
         end
       end
@@ -242,7 +257,7 @@ module Huebot
         pause_val = t.delete "pause"
         case pause_val
         when Integer, Float
-          Program::AST::Pause.new(nil, pause_val)
+          Program::AST::Pause.new(nil, Program::AST::Num.new(pause_val))
         when nil
           nil
         else
@@ -255,19 +270,66 @@ module Huebot
         pause_val = t.delete "pause"
         case pause_val
         when Integer, Float
-          Program::AST::Pause.new(nil, pause_val)
+          Program::AST::Pause.new(nil, Program::AST::Num.new(pause_val))
         when Hash
           pre = pause_val.delete "before"
           post = pause_val.delete "after"
           errors << "'pause.before' must be an integer or float" unless pre.nil? or pre.is_a? Integer or pre.is_a? Float
           errors << "'pause.after' must be an integer or float" unless post.nil? or post.is_a? Integer or post.is_a? Float
           errors << "Unknown keys in 'pause': #{pause_val.keys.join ", "}" if pause_val.keys.any?
+          pre = Program::AST::Num.new(pre) if pre
+          post = Program::AST::Num.new(post) if post
           Program::AST::Pause.new(pre, post)
         when nil
           nil
         else
-          errors << "'pause' must be an integer or float"
+          errors << "'pause' must be an integer or float, or an object with 'before' and/or 'after'"
           nil
+        end
+      end
+
+      def build_pause_1_2(t, errors, warnings)
+        pause_val = t.delete "pause"
+        case pause_val
+        when Integer, Float
+          Program::AST::Pause.new(nil, Program::AST::Num.new(pause_val))
+        when Hash
+          pre = build_pause_part(pause_val, "before", errors, warnings)
+          post = build_pause_part(pause_val, "after", errors, warnings)
+          errors << "'pause' requires one or both of 'before' or 'after'" if pre.nil? and post.nil?
+          errors << "Unknown keys in 'pause': #{pause_val.keys.join ", "}" if pause_val.keys.any?
+          Program::AST::Pause.new(pre, post)
+        when nil
+          nil
+        else
+          errors << "'pause' must be an integer or float, or an object with 'before' and/or 'after'"
+          nil
+        end
+      end
+
+      def build_pause_part(t, part, errors, warnings)
+        val = t.delete part
+        case val
+        when nil
+          nil
+        when Integer, Float
+          Program::AST::Num.new(val)
+        when Hash
+          if @api_version < 1.2
+            errors << "Unknown 'pause.#{part}' type (#{val.class.name})"
+            return Program::AST::Num.new(1)
+          end
+
+          case val.keys
+          when RANDOM_KEYS
+            build_random val, errors, warnings
+          else
+            errors << "Expected 'pause.#{part}' to contain 'random', found #{val.keys.join ", "}"
+            Program::AST::Num.new(1)
+          end
+        else
+          errors << "Unknown 'pause.#{part}' type (#{val.class.name})"
+          Program::AST::Num.new(1)
         end
       end
 

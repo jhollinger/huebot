@@ -23,7 +23,7 @@ class BotTest < Minitest::Test
         Huebot::Light::Input.new("Office Go"),
       ]
     )
-    @compiler = Huebot::Compiler::ApiV1.new(1.1)
+    @compiler = Huebot::Compiler::ApiV1.new(1.2)
     @logger = Huebot::Logging::CollectingLogger.new
     @bot = Huebot::Bot.new(@device_mapper, logger: @logger, waiter: ->(_n) {})
   end
@@ -255,6 +255,90 @@ class BotTest < Minitest::Test
       "set_state {\"device\":\"Office Go\",\"state\":{\"brightness\":50},\"result\":null}",
       "stop {\"program\":\"Test\"}",
     ], @logger.events.map { |(_ts, event, data)|
+      "#{event} #{data.to_json}"
+    }
+  end
+
+  def test_random_pause
+    program = @compiler.build({
+      "name" => "Test",
+      "serial" => {
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"lights" => ["Bookshelf Left"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Bookshelf Right"]}, "pause" => {
+            "before" => {"random" => {"min" => 0.5, "max" => 5.5}},
+            "after" => {"random" => {"min" => 0.5, "max" => 5.5}},
+          }}},
+        ],
+      },
+    })
+    assert_equal [], program.errors
+
+    @bot.execute program
+    assert_equal [
+      "start {\"program\":\"Test\"}",
+      "serial {\"loop\":\"counted\"}",
+      "transition {\"devices\":[\"Bookshelf Left\"]}",
+      "set_state {\"device\":\"Bookshelf Left\",\"state\":{\"brightness\":50},\"result\":null}",
+      "pause {\"time\":0.4}",
+      "transition {\"devices\":[\"Bookshelf Right\"]}",
+    ], @logger.events.shift(6).map { |(_ts, event, data)|
+      "#{event} #{data.to_json}"
+    }
+
+    # random pause
+    assert_equal :pause, @logger.events.shift(1)[0][1]
+
+    assert_equal [
+      "set_state {\"device\":\"Bookshelf Right\",\"state\":{\"brightness\":100},\"result\":null}",
+      "pause {\"time\":0.4}",
+    ], @logger.events.shift(2).map { |(_ts, event, data)|
+      "#{event} #{data.to_json}"
+    }
+
+    # random pause
+    assert_equal :pause, @logger.events.shift(1)[0][1]
+
+    assert_equal [
+      "stop {\"program\":\"Test\"}",
+    ], @logger.events.map { |(_ts, event, data)|
+      "#{event} #{data.to_json}"
+    }
+  end
+
+  def test_random_loop
+    program = @compiler.build({
+      "name" => "Test",
+      "serial" => {
+        "loop" => {
+          "random" => {"min" => 2, "max" => 3},
+        },
+        "steps" => [
+          {"transition" => {"state" => {"brightness" => 50}, "devices" => {"lights" => ["Bookshelf Left"]}}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Bookshelf Left"]}}},
+        ],
+      },
+    })
+    assert_equal [], program.errors
+
+    @bot.execute program
+    assert_equal [
+      "start {\"program\":\"Test\"}",
+      "serial {\"loop\":\"counted\"}",
+      "transition {\"devices\":[\"Bookshelf Left\"]}",
+      "set_state {\"device\":\"Bookshelf Left\",\"state\":{\"brightness\":50},\"result\":null}",
+      "pause {\"time\":0.4}",
+      "transition {\"devices\":[\"Bookshelf Left\"]}",
+      "set_state {\"device\":\"Bookshelf Left\",\"state\":{\"brightness\":100},\"result\":null}",
+      "pause {\"time\":0.4}",
+      "serial {\"loop\":\"counted\"}",
+      "transition {\"devices\":[\"Bookshelf Left\"]}",
+      "set_state {\"device\":\"Bookshelf Left\",\"state\":{\"brightness\":50},\"result\":null}",
+      "pause {\"time\":0.4}",
+      "transition {\"devices\":[\"Bookshelf Left\"]}",
+      "set_state {\"device\":\"Bookshelf Left\",\"state\":{\"brightness\":100},\"result\":null}",
+      "pause {\"time\":0.4}",
+    ], @logger.events.shift(15).map { |(_ts, event, data)|
       "#{event} #{data.to_json}"
     }
   end
