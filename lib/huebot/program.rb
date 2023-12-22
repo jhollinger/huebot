@@ -58,14 +58,14 @@ module Huebot
     end
 
     def errors(node = data)
-      node.children.reduce(node.errors) { |errors, child|
-        errors + child.errors
+      node.children.reduce(node.errors) { |acc, child|
+        acc + errors(child)
       }
     end
 
     def warnings(node = data)
-      node.children.reduce(node.warnings) { |warnings, child|
-        warnings + child.warnings
+      node.children.reduce(node.warnings) { |acc, child|
+        acc + warnings(child)
       }
     end
 
