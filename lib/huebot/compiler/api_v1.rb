@@ -51,40 +51,55 @@ module Huebot
       end
 
       def build_transition(t, errors, warnings, inherited_devices = nil)
+        if t.nil?
+          errors << "'transition' may not be blank"
+          t = {}
+        end
+
         state = build_state(t, errors, warnings)
         devices = build_devices(t, errors, warnings, inherited_devices)
-        slp = build_sleep(t, errors, warnings)
+        pause = build_pause(t, errors, warnings)
 
         errors << "'transition' requires devices" if devices.empty?
         errors << "Unknown keys in 'transition': #{t.keys.join ", "}" if t.keys.any?
 
-        instruction = Program::AST::Transition.new(state, devices, slp)
+        instruction = Program::AST::Transition.new(state, devices, pause)
         return instruction, []
       end
 
       def build_serial(t, errors, warnings, inherited_devices = nil)
+        if t.nil?
+          errors << "'serial' may not be blank"
+          t = {}
+        end
+
         lp = build_loop(t, errors, warnings)
-        slp = build_sleep(t, errors, warnings)
+        pause = build_pause(t, errors, warnings)
         devices = build_devices(t, errors, warnings, inherited_devices)
         children = build_steps(t, errors, warnings, devices)
 
         errors << "'serial' requires steps" if children.empty?
         errors << "Unknown keys in 'serial': #{t.keys.join ", "}" if t.keys.any?
 
-        instruction = Program::AST::SerialControl.new(lp, slp)
+        instruction = Program::AST::SerialControl.new(lp, pause)
         return instruction, children
       end
 
       def build_parallel(t, errors, warnings, inherited_devices = nil)
+        if t.nil?
+          errors << "'parallel' may not be blank"
+          t = {}
+        end
+
         lp = build_loop(t, errors, warnings)
-        slp = build_sleep(t, errors, warnings)
+        pause = build_pause(t, errors, warnings)
         devices = build_devices(t, errors, warnings, inherited_devices)
         children = build_steps(t, errors, warnings, devices)
 
         errors << "'parallel' requires steps" if children.empty?
         errors << "Unknown keys in 'parallel': #{t.keys.join ", "}" if t.keys.any?
 
-        instruction = Program::AST::ParallelControl.new(lp, slp)
+        instruction = Program::AST::ParallelControl.new(lp, pause)
         return instruction, children
       end
 
@@ -167,9 +182,7 @@ module Huebot
         loop_val = t.delete "loop"
         case loop_val
         when Hash
-          pause = loop_val.delete "pause"
-          errors << "'loop.pause' must be an integer. Found '#{pause.class.name}'" if pause and !pause.is_a? Integer
-
+          pause = build_pause(loop_val, errors, warnings)
           lp =
             case loop_val.keys
             when INFINITE_KEYS
@@ -216,11 +229,39 @@ module Huebot
         Program::AST::DeadlineLoop.new(stop_time)
       end
 
-      def build_sleep(t, errors, warnings)
-        sleep_val = t.delete "pause"
-        case sleep_val
+      def build_pause(t, errors, warnings)
+        case @api_version
+        when 1.0 then build_pause_1_0(t, errors, warnings)
+        when 1.1 then build_pause_1_1(t, errors, warnings)
+        else raise Error, "Unknown api version '#{@api_version}'"
+        end
+      end
+
+      def build_pause_1_0(t, errors, warnings)
+        pause_val = t.delete "pause"
+        case pause_val
         when Integer, Float
-          sleep_val
+          Program::AST::Pause.new(nil, pause_val)
+        when nil
+          nil
+        else
+          errors << "'pause' must be an integer or float"
+          nil
+        end
+      end
+
+      def build_pause_1_1(t, errors, warnings)
+        pause_val = t.delete "pause"
+        case pause_val
+        when Integer, Float
+          Program::AST::Pause.new(nil, pause_val)
+        when Hash
+          pre = pause_val.delete "before"
+          post = pause_val.delete "after"
+          errors << "'pause.before' must be an integer or float" unless pre.nil? or pre.is_a? Integer or pre.is_a? Float
+          errors << "'pause.after' must be an integer or float" unless post.nil? or post.is_a? Integer or post.is_a? Float
+          errors << "Unknown keys in 'pause': #{pause_val.keys.join ", "}" if pause_val.keys.any?
+          Program::AST::Pause.new(pre, post)
         when nil
           nil
         else

@@ -16,15 +16,16 @@ module Huebot
     module AST
       Node = Struct.new(:instruction, :children, :errors, :warnings)
 
-      Transition = Struct.new(:state, :devices, :sleep)
-      SerialControl = Struct.new(:loop, :sleep)
-      ParallelControl = Struct.new(:loop, :sleep)
+      Transition = Struct.new(:state, :devices, :pause)
+      SerialControl = Struct.new(:loop, :pause)
+      ParallelControl = Struct.new(:loop, :pause)
 
       InfiniteLoop = Struct.new(:pause)
       CountedLoop = Struct.new(:n, :pause)
       TimerLoop = Struct.new(:hours, :minutes, :pause)
       DeadlineLoop = Struct.new(:stop_time, :pause)
 
+      Pause = Struct.new(:pre, :post)
       DeviceRef = Struct.new(:ref)
       Light = Struct.new(:name)
       Group = Struct.new(:name)

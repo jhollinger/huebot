@@ -13,7 +13,7 @@ module Huebot
     def self.build(src)
       compiler_class =
         case src.api_version
-        when 1.0 then ApiV1
+        when 1.0, 1.1 then ApiV1
         else raise Error, "Unknown API version '#{src.api_version}'"
         end
       compiler = compiler_class.new(src.api_version)

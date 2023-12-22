@@ -23,7 +23,7 @@ class BotTest < Minitest::Test
         Huebot::Light::Input.new("Office Go"),
       ]
     )
-    @compiler = Huebot::Compiler::ApiV1.new(1.0)
+    @compiler = Huebot::Compiler::ApiV1.new(1.1)
     @logger = Huebot::Logging::CollectingLogger.new
     @bot = Huebot::Bot.new(@device_mapper, logger: @logger, waiter: ->(_n) {})
   end
@@ -35,7 +35,7 @@ class BotTest < Minitest::Test
         "loop" => {"count" => 3},
         "steps" => [
           {"transition" => {"state" => {"brightness" => 50}, "devices" => {"inputs" => ["$4"]}}},
-          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Office Go"], "groups" => ["Bookshelf"]}, "pause" => 1}},
+          {"transition" => {"state" => {"brightness" => 100}, "devices" => {"lights" => ["Office Go"], "groups" => ["Bookshelf"]}, "pause" => {"before" => 0.5, "after" => 1}}},
         ],
       },
     })
@@ -49,7 +49,8 @@ class BotTest < Minitest::Test
       "set_state {\"device\":\"Office Go\",\"state\":{\"brightness\":50},\"result\":null}",
       "pause {\"time\":0.4}",
       "transition {\"devices\":[\"Office Go\",\"Bookshelf\"]}",
-    ], @logger.events.shift(6).map { |(_ts, event, data)|
+      "pause {\"time\":0.5}",
+    ], @logger.events.shift(7).map { |(_ts, event, data)|
       "#{event} #{data.to_json}"
     }
 
@@ -58,18 +59,19 @@ class BotTest < Minitest::Test
       "pause {\"time\":0.4}",
       "set_state {\"device\":\"Bookshelf\",\"state\":{\"brightness\":100},\"result\":null}",
       "pause {\"time\":0.4}",
-      "pause {\"time\":1}",
-    ].sort, @logger.events.shift(5).map { |(_ts, event, data)|
+    ].sort, @logger.events.shift(4).map { |(_ts, event, data)|
       "#{event} #{data.to_json}"
     }.sort
 
     assert_equal [
+      "pause {\"time\":1}",
       "serial {\"loop\":\"counted\"}",
       "transition {\"devices\":[\"Office Go\"]}",
       "set_state {\"device\":\"Office Go\",\"state\":{\"brightness\":50},\"result\":null}",
       "pause {\"time\":0.4}",
       "transition {\"devices\":[\"Office Go\",\"Bookshelf\"]}",
-    ], @logger.events.shift(5).map { |(_ts, event, data)|
+      "pause {\"time\":0.5}",
+    ], @logger.events.shift(7).map { |(_ts, event, data)|
       "#{event} #{data.to_json}"
     }
 
@@ -78,18 +80,19 @@ class BotTest < Minitest::Test
       "pause {\"time\":0.4}",
       "set_state {\"device\":\"Bookshelf\",\"state\":{\"brightness\":100},\"result\":null}",
       "pause {\"time\":0.4}",
-      "pause {\"time\":1}",
-    ].sort, @logger.events.shift(5).map { |(_ts, event, data)|
+    ].sort, @logger.events.shift(4).map { |(_ts, event, data)|
       "#{event} #{data.to_json}"
     }.sort
 
     assert_equal [
+      "pause {\"time\":1}",
       "serial {\"loop\":\"counted\"}",
       "transition {\"devices\":[\"Office Go\"]}",
       "set_state {\"device\":\"Office Go\",\"state\":{\"brightness\":50},\"result\":null}",
       "pause {\"time\":0.4}",
       "transition {\"devices\":[\"Office Go\",\"Bookshelf\"]}",
-    ], @logger.events.shift(5).map { |(_ts, event, data)|
+      "pause {\"time\":0.5}",
+    ], @logger.events.shift(7).map { |(_ts, event, data)|
       "#{event} #{data.to_json}"
     }
 

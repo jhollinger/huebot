@@ -21,21 +21,22 @@ module Huebot
       i = node.instruction
       case i
       when Program::AST::Transition
-        transition i.state, i.devices, i.sleep
+        transition i.state, i.devices, i.pause
       when Program::AST::SerialControl
-        serial node.children, i.loop, i.sleep
+        serial node.children, i.loop, i.pause
       when Program::AST::ParallelControl
-        parallel node.children, i.loop, i.sleep
+        parallel node.children, i.loop, i.pause
       else
         raise Error, "Unexpected instruction '#{i.class.name}'"
       end
     end
 
-    def transition(state, device_refs, sleep_time = nil)
+    def transition(state, device_refs, pause = nil)
       time = (state["transitiontime"] || 4).to_f / 10
       devices = map_devices device_refs
       @logger.log :transition, {devices: devices.map(&:name)}
 
+      wait pause.pre if pause&.pre
       devices.map { |device|
         Thread.new {
           # TODO error handling
@@ -44,20 +45,22 @@ module Huebot
           wait time
         }
       }.map(&:join)
-      wait sleep_time if sleep_time
+      wait pause.post if pause&.post
     end
 
-    def serial(nodes, lp, sleep_time = nil)
+    def serial(nodes, lp, pause = nil)
+      wait pause.pre if pause&.pre
       control_loop(lp) { |loop_type|
         @logger.log :serial, {loop: loop_type}
         nodes.each { |node|
           exec node
         }
       }
-      wait sleep_time if sleep_time
+      wait pause.post if pause&.post
     end
 
-    def parallel(nodes, lp, sleep_time = nil)
+    def parallel(nodes, lp, pause = nil)
+      wait pause.pre if pause&.pre
       control_loop(lp) { |loop_type|
         @logger.log :parallel, {loop: loop_type}
         nodes.map { |node|
@@ -67,33 +70,37 @@ module Huebot
           }
         }.map(&:join)
       }
-      wait sleep_time if sleep_time
+      wait pause.post if pause&.post
     end
 
     def control_loop(lp)
       case lp
       when Program::AST::InfiniteLoop
         loop {
+          wait lp.pause.pre if lp.pause&.pre
           yield :infinite
-          wait lp.pause if lp.pause
+          wait lp.pause.post if lp.pause&.post
         }
       when Program::AST::CountedLoop
         lp.n.times {
+          wait lp.pause.pre if lp.pause&.pre
           yield :counted
-          wait lp.pause if lp.pause
+          wait lp.pause.post if lp.pause&.post
         }
       when Program::AST::DeadlineLoop
         until Time.now >= lp.stop_time
+          wait lp.pause.pre if lp.pause&.pre
           yield :deadline
-          wait lp.pause if lp.pause
+          wait lp.pause.post if lp.pause&.post
         end
       when Program::AST::TimerLoop
         sec = ((lp.hours * 60) + lp.minutes) * 60
         time = 0
         until time >= sec
           start = Time.now
+          wait lp.pause.pre if lp.pause&.pre
           yield :timer
-          wait lp.pause if lp.pause
+          wait lp.pause.post if lp.pause&.post
           time += (Time.now - start).round
         end
       else

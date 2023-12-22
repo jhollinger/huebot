@@ -34,13 +34,15 @@ serial:
               state:
                 bri: 150
                 time: 10 # 10 second transition
-              pause: 2   # 2 second pause before the next step
+              pause:
+                after: 2   # 2 second pause before the next step
 
           - transition:
               state:
                 bri: 254
                 time: 10 # 10 second transition
-              pause: 2   # 2 second pause before the next step
+              pause:
+                after: 2   # 2 second pause before the next step
 
     - transition:
         state:
@@ -78,12 +80,14 @@ serial:
                     state:
                       bri: 254
                       time: 10 # transition over 10 seconds
-                    pause: 5   # pause an extra 5 sec after the transition
+                    pause:
+                      after: 5   # pause an extra 5 sec after the transition
                 - transition:
                     state:
                       bri: 25
                       time: 10
-                    pause: 5
+                    pause:
+                      after: 5
 
           # Parallel branch 2: Fade inputs #2 and #4 down and up
           - serial:
@@ -96,12 +100,14 @@ serial:
                     state:
                       bri: 25
                       time: 10
-                    pause: 5
+                    pause:
+                      after: 5
                 - transition:
                     state:
                       bri: 254
                       time: 10
-                    pause: 5
+                    pause:
+                      after: 5
 ```
 
 [See the Wiki](https://github.com/jhollinger/huebot/wiki) for more documentation and examples.

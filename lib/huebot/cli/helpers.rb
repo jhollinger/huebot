@@ -5,6 +5,8 @@ require 'json'
 module Huebot
   module CLI
     module Helpers
+      DEFAULT_API_VERSION = 1.1
+
       #
       # Returns the command given to huebot.
       #
@@ -70,7 +72,7 @@ module Huebot
               opts.stderr.puts "Unknown file extension '#{ext}'. Expected .yaml, .yml, or .json"
               return []
             end
-          version = (src.delete("version") || 1.0).to_f
+          version = (src.delete("version") || DEFAULT_API_VERSION).to_f
           Program::Src.new(src, path, version)
         }
 
@@ -80,7 +82,7 @@ module Huebot
           src = raw[0] == "{" ? JSON.load(raw) : YAML.safe_load(raw)
 
           opts.stdout.puts "Executing..." if opts.read_stdin
-          version = (src.delete("version") || 1.0).to_f
+          version = (src.delete("version") || DEFAULT_API_VERSION).to_f
           sources << Program::Src.new(src, "STDIN", version)
         end
         sources
