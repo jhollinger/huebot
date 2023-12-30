@@ -27,21 +27,26 @@ func (i *deviceInputsVar) Set(value string) error {
 }
 
 type Options struct {
-    Inputs *[]deviceInput
+    Inputs []deviceInput
+    Interactive bool
+    NoDeviceCheck bool
+    Debug bool
 }
 
 func GetInput() (string, []string, *Options) {
-    var inputs []deviceInput
-    var lights = deviceInputsVar{"Light", &inputs}
-    var groups = deviceInputsVar{"Group", &inputs}
+    opts := Options{}
+    var lights = deviceInputsVar{"Light", &opts.Inputs}
+    var groups = deviceInputsVar{"Group", &opts.Inputs}
 
     pflag.VarP(&lights, "light", "l", "Name or ID of light")
     pflag.VarP(&groups, "group", "g", "Name or ID of group")
+    pflag.BoolVarP(&opts.Interactive, "stdin", "i", false, "Read program from STDIN")
+    pflag.BoolVarP(&opts.NoDeviceCheck, "no-device-check", "", false, "Don't validate devices against the Bridge ('check' cmd only)")
+    pflag.BoolVarP(&opts.Debug, "debug", "", false, "Print debug info during run")
     pflag.Usage = usage
 
     pflag.Parse()
     all_args := pflag.Args()
-    opts := Options{Inputs: &inputs}
 
     var cmd string
     var args []string
@@ -55,25 +60,25 @@ func GetInput() (string, []string, *Options) {
 func usage() {
     fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
     fmt.Fprintf(os.Stderr, `List all lights and groups:
-    huebot ls
+  huebot ls
 
 Run program(s):
-    huebot run prog1.yaml [prog2.yml [prog3.json ...]] [options]
+  huebot run prog1.yaml [prog2.yml [prog3.json ...]] [options]
 
 Run program from STDIN:
-    cat prog1.yaml | huebot run [options]
-    huebot run [options] < prog1.yaml
-    huebot run -i [options]
+  cat prog1.yaml | huebot run [options]
+  huebot run [options] < prog1.yaml
+  huebot run -i [options]
 
 Validate programs and inputs:
-    huebot check prog1.yaml [prog2.yaml [prog3.yaml ...]] [options]
+  huebot check prog1.yaml [prog2.yaml [prog3.yaml ...]] [options]
 
 Print the current state of the given lights and/or groups:
-    huebot get-state [options]
+  huebot get-state [options]
 
 Manually set/clear the IP for your Hue Bridge (useful when on a VPN):
-    huebot set-ip 192.168.1.20
-    huebot clear-ip
+  huebot set-ip 192.168.1.20
+  huebot clear-ip
 
 Clear all connection config:
   huebot unregister
